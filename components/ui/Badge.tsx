@@ -9,10 +9,10 @@ type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'blue
 
 const badgeVariants: Record<BadgeVariant, string> = {
   default: 'bg-surface-tertiary text-text-secondary',
-  success: 'bg-green-50 text-green-700',
-  warning: 'bg-amber-50 text-amber-700',
-  error: 'bg-red-50 text-red-700',
-  info: 'bg-cyan-50 text-cyan-700',
+  success: 'bg-green-50 text-green-600',
+  warning: 'bg-amber-50 text-amber-600',
+  error: 'bg-red-50 text-red-500',
+  info: 'bg-cyan-50 text-cyan-600',
   blue: 'bg-primary-50 text-primary',
 };
 
@@ -26,7 +26,7 @@ export default function Badge({ children, variant = 'default', className }: Badg
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium',
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium',
         badgeVariants[variant],
         className,
       )}
@@ -38,18 +38,18 @@ export default function Badge({ children, variant = 'default', className }: Badg
 
 // --- Tier Badge ---
 const tierClasses: Record<TierLevel, string> = {
-  1: 'tier-bronze text-amber-900',
-  2: 'tier-silver text-gray-700',
-  3: 'tier-gold text-yellow-900',
-  4: 'tier-platinum text-gray-600',
-  5: 'tier-diamond text-cyan-800',
+  1: 'tier-bronze text-amber-900/80',
+  2: 'tier-silver text-gray-600',
+  3: 'tier-gold text-yellow-800/80',
+  4: 'tier-platinum text-gray-500',
+  5: 'tier-diamond text-cyan-700/80',
 };
 
 export function TierBadge({ tier, className }: { tier: TierLevel; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold',
+        'inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold',
         tierClasses[tier],
         className,
       )}
@@ -61,23 +61,23 @@ export function TierBadge({ tier, className }: { tier: TierLevel; className?: st
 
 // --- Rarity Badge ---
 const rarityClasses: Record<string, string> = {
-  COMMON: 'bg-gray-100 text-gray-600',
-  RARE: 'bg-blue-50 text-blue-700',
-  EPIC: 'bg-purple-50 text-purple-700',
-  LEGENDARY: 'bg-amber-50 text-amber-700',
-  MYTHIC: 'bg-red-50 text-red-700',
+  COMMON: 'bg-gray-50 text-gray-500',
+  RARE: 'bg-blue-50 text-blue-500',
+  EPIC: 'bg-purple-50 text-purple-500',
+  LEGENDARY: 'bg-amber-50 text-amber-600',
+  MYTHIC: 'bg-red-50 text-red-500',
 };
 
 export function RarityBadge({ rarity, className }: { rarity: string; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase',
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold',
         rarityClasses[rarity] || rarityClasses.COMMON,
         className,
       )}
     >
-      {rarity.toLowerCase()}
+      {rarity.charAt(0) + rarity.slice(1).toLowerCase()}
     </span>
   );
 }

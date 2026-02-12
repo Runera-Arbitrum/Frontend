@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Runera — Move to Earn on Arbitrum',
   description: 'Web3 fitness gamification platform. Run, earn XP, level up, and collect NFTs.',
-  icons: { icon: '/runera-logo.svg' },
+  icons: { icon: '/runera biru.png' },
 };
 
 export const viewport: Viewport = {
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#2563EB',
+  themeColor: '#0072F4',
 };
 
 export default function RootLayout({

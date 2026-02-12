@@ -23,26 +23,23 @@ export default function Header({
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 px-4 pt-3 pb-2',
-        transparent ? 'bg-transparent' : 'bg-surface/80 backdrop-blur-lg border-b border-border-light',
+        'sticky top-0 z-30 px-5 pt-4 pb-2',
+        transparent ? 'bg-transparent' : 'bg-surface/85 backdrop-blur-xl border-b border-border-light/50',
         className,
       )}
     >
       <div className="flex items-center justify-between h-10">
-        {/* Left slot */}
         <div className="w-10 flex items-center justify-start">
           {left}
         </div>
 
-        {/* Center */}
         <div className="flex-1 text-center">
-          <h1 className="text-base font-bold text-text-primary leading-tight">{title}</h1>
+          <h1 className="text-[15px] font-semibold text-text-primary leading-tight tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="text-[10px] text-text-tertiary">{subtitle}</p>
+            <p className="text-[11px] text-text-tertiary mt-0.5">{subtitle}</p>
           )}
         </div>
 
-        {/* Right slot */}
         <div className="w-10 flex items-center justify-end">
           {right}
         </div>

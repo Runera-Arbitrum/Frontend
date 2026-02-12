@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 
 interface ProgressBarProps {
-  value: number; // 0-100
+  value: number;
   max?: number;
   size?: 'sm' | 'md' | 'lg';
   color?: 'primary' | 'success' | 'warning' | 'error';
@@ -13,9 +13,9 @@ interface ProgressBarProps {
 }
 
 const sizeStyles = {
-  sm: 'h-1.5',
-  md: 'h-2.5',
-  lg: 'h-4',
+  sm: 'h-1',
+  md: 'h-2',
+  lg: 'h-3',
 };
 
 const colorStyles = {
@@ -39,10 +39,10 @@ export default function ProgressBar({
   return (
     <div className={cn('w-full', className)}>
       {(showLabel || label) && (
-        <div className="flex items-center justify-between mb-1">
-          {label && <span className="text-xs text-text-secondary">{label}</span>}
+        <div className="flex items-center justify-between mb-1.5">
+          {label && <span className="text-xs text-text-tertiary">{label}</span>}
           {showLabel && (
-            <span className="text-xs font-medium text-text-secondary">
+            <span className="text-xs font-medium text-text-tertiary">
               {Math.round(percentage)}%
             </span>
           )}
@@ -50,7 +50,7 @@ export default function ProgressBar({
       )}
       <div className={cn('w-full rounded-full bg-surface-tertiary overflow-hidden', sizeStyles[size])}>
         <div
-          className={cn('h-full rounded-full transition-all duration-500 ease-out', colorStyles[color])}
+          className={cn('h-full rounded-full transition-all duration-700 ease-out', colorStyles[color])}
           style={{ width: `${percentage}%` }}
         />
       </div>

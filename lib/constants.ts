@@ -32,10 +32,10 @@ export const TIER_THRESHOLDS = [
   { minLevel: 9, tier: 5 as const, name: 'Diamond' },
 ];
 
-// Rarity colors
+// Rarity colors — vivid, contrasting
 export const RARITY_COLORS: Record<string, string> = {
-  COMMON: '#9CA3AF',
-  RARE: '#3B82F6',
+  COMMON: '#8893A2',
+  RARE: '#0072F4',
   EPIC: '#8B5CF6',
   LEGENDARY: '#F59E0B',
   MYTHIC: '#EF4444',

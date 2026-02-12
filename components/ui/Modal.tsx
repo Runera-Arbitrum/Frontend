@@ -13,7 +13,6 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children, className }: ModalProps) {
-  // Lock body scroll when modal is open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -29,33 +28,32 @@ export default function Modal({ open, onClose, title, children, className }: Mod
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* Backdrop */}
+      {/* Backdrop — softer */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/25 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Bottom sheet style on mobile */}
+      {/* Bottom sheet — gentle */}
       <div
         className={cn(
-          'relative w-full max-w-[430px] bg-surface rounded-t-3xl sm:rounded-2xl',
-          'p-5 pb-8 max-h-[85vh] overflow-y-auto',
-          'animate-in slide-in-from-bottom duration-200',
+          'relative w-full max-w-[430px] bg-surface rounded-t-[28px] sm:rounded-2xl',
+          'p-6 pb-10 max-h-[85vh] overflow-y-auto',
+          'animate-in slide-in-from-bottom duration-300',
           className,
         )}
       >
-        {/* Handle bar (mobile indicator) */}
-        <div className="w-10 h-1 rounded-full bg-border mx-auto mb-4 sm:hidden" />
+        {/* Handle bar */}
+        <div className="w-9 h-1 rounded-full bg-border-light mx-auto mb-5 sm:hidden" />
 
-        {/* Header */}
         {title && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-text-primary">{title}</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-semibold text-text-primary tracking-tight">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-surface-tertiary transition-colors"
+              className="p-2 -mr-1 rounded-full hover:bg-surface-tertiary transition-colors duration-200"
             >
-              <X size={20} className="text-text-tertiary" />
+              <X size={18} className="text-text-tertiary" />
             </button>
           </div>
         )}

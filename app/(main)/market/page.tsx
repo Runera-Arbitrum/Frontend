@@ -27,28 +27,28 @@ export default function MarketPage() {
     <div className="page-enter">
       <Header title="Market" subtitle="Trade cosmetic NFTs" />
 
-      {/* Banner */}
-      <div className="mx-4 mt-2 mb-4 bg-gradient-to-r from-primary to-primary-light rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-          <Sparkles size={24} className="text-white" />
+      {/* Banner — soft, premium feel */}
+      <div className="mx-5 mt-2 mb-4 bg-gradient-to-r from-primary/80 to-primary-light/70 rounded-2xl p-4 flex items-center gap-3">
+        <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
+          <Sparkles size={22} className="text-white/90" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-white">Cosmetic NFTs</p>
-          <p className="text-xs text-primary-200">Customize your runner avatar</p>
+          <p className="text-sm font-semibold text-white/95">Cosmetic NFTs</p>
+          <p className="text-xs text-white/60">Customize your runner avatar</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="px-4 flex gap-2 mb-3">
+      {/* Tabs — iOS segmented control style */}
+      <div className="px-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5 mb-4">
         {(['listings', 'collection'] as MarketTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'flex-1 py-2 rounded-xl text-sm font-medium transition-colors',
+              'flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200',
               activeTab === tab
-                ? 'bg-primary text-text-inverse'
-                : 'bg-surface-tertiary text-text-secondary',
+                ? 'bg-surface text-text-primary shadow-card'
+                : 'text-text-tertiary',
             )}
           >
             {tab === 'listings' ? 'Marketplace' : 'My Collection'}
@@ -57,11 +57,11 @@ export default function MarketPage() {
       </div>
 
       {/* Content */}
-      <div className="px-4 pb-4">
+      <div className="px-5 pb-6">
         {activeTab === 'listings' ? (
           listings.length === 0 ? (
             <EmptyState
-              icon={<ShoppingBag size={40} />}
+              icon={<ShoppingBag size={36} />}
               title="No listings yet"
               description="Be the first to list an item"
             />
@@ -78,7 +78,7 @@ export default function MarketPage() {
           )
         ) : collection.length === 0 ? (
           <EmptyState
-            icon={<Package size={40} />}
+            icon={<Package size={36} />}
             title="No items yet"
             description="Earn or buy cosmetics to customize your profile"
           />
@@ -125,22 +125,22 @@ function ListingCard({ listing, onPress }: { listing: MarketListing; onPress: ()
     <Card hoverable onClick={onPress}>
       <div className="flex items-center gap-3">
         <div
-          className="w-14 h-14 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}15` }}
+          className="w-13 h-13 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}10` }}
         >
-          <Package size={24} style={{ color: RARITY_COLORS[listing.item.rarity] }} />
+          <Package size={22} style={{ color: RARITY_COLORS[listing.item.rarity], opacity: 0.7 }} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-sm font-semibold text-text-primary truncate">{listing.item.name}</p>
+            <p className="text-sm font-medium text-text-primary truncate">{listing.item.name}</p>
             <RarityBadge rarity={listing.item.rarity} />
           </div>
           <p className="text-xs text-text-tertiary">
-            {CATEGORY_LABELS[listing.item.category]} · by {listing.seller}
+            {CATEGORY_LABELS[listing.item.category]}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-bold text-text-primary">{listing.pricePerUnit}</p>
+          <p className="text-sm font-semibold text-text-primary">{listing.pricePerUnit}</p>
           <p className="text-[10px] text-text-tertiary">ETH</p>
         </div>
       </div>
@@ -152,53 +152,52 @@ function CollectionCard({ item, onPress }: { item: CosmeticItem; onPress: () => 
   return (
     <Card hoverable onClick={onPress} className="text-center">
       <div
-        className="w-full aspect-square rounded-xl mb-2 flex items-center justify-center"
-        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}15` }}
+        className="w-full aspect-square rounded-xl mb-2.5 flex items-center justify-center"
+        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}08` }}
       >
-        <Package size={36} style={{ color: RARITY_COLORS[item.rarity] }} />
+        <Package size={32} style={{ color: RARITY_COLORS[item.rarity], opacity: 0.6 }} />
       </div>
-      <p className="text-xs font-semibold text-text-primary truncate">{item.name}</p>
-      <RarityBadge rarity={item.rarity} className="mt-1" />
+      <p className="text-xs font-medium text-text-primary truncate">{item.name}</p>
+      <RarityBadge rarity={item.rarity} className="mt-1.5" />
     </Card>
   );
 }
 
 function ListingDetail({ listing, onClose }: { listing: MarketListing; onClose: () => void }) {
   const handleBuy = () => {
-    // TODO: Call buyListing() via Privy sendTransaction
     alert('Purchase successful! (mock)');
     onClose();
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div
         className="w-full aspect-square max-h-48 rounded-2xl flex items-center justify-center mx-auto"
-        style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}15` }}
+        style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}08` }}
       >
-        <Package size={64} style={{ color: RARITY_COLORS[listing.item.rarity] }} />
+        <Package size={56} style={{ color: RARITY_COLORS[listing.item.rarity], opacity: 0.5 }} />
       </div>
 
       <div className="text-center">
-        <h3 className="text-lg font-bold text-text-primary">{listing.item.name}</h3>
-        <div className="flex items-center justify-center gap-2 mt-1">
+        <h3 className="text-lg font-semibold text-text-primary">{listing.item.name}</h3>
+        <div className="flex items-center justify-center gap-2 mt-1.5">
           <RarityBadge rarity={listing.item.rarity} />
           <Badge>{CATEGORY_LABELS[listing.item.category]}</Badge>
         </div>
       </div>
 
-      <div className="bg-surface-tertiary rounded-xl p-4 text-center">
+      <div className="bg-surface-tertiary/60 rounded-2xl p-5 text-center">
         <p className="text-xs text-text-tertiary">Price</p>
-        <p className="text-2xl font-bold text-text-primary">{listing.pricePerUnit} ETH</p>
-        <p className="text-xs text-text-tertiary mt-1">Seller: {listing.seller}</p>
+        <p className="text-2xl font-semibold text-text-primary mt-0.5">{listing.pricePerUnit} ETH</p>
+        <p className="text-xs text-text-tertiary mt-1.5">Seller: {listing.seller}</p>
       </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-text-secondary">Min Tier Required</span>
+      <div className="flex items-center justify-between px-1">
+        <span className="text-xs text-text-tertiary">Min Tier Required</span>
         <TierBadge tier={listing.item.minTierRequired} />
       </div>
 
-      <Button variant="primary" size="lg" className="w-full" onClick={handleBuy}>
+      <Button variant="primary" size="lg" className="w-full rounded-2xl" onClick={handleBuy}>
         Buy for {listing.pricePerUnit} ETH
       </Button>
     </div>
@@ -207,18 +206,17 @@ function ListingDetail({ listing, onClose }: { listing: MarketListing; onClose: 
 
 function ItemDetail({ item, onClose }: { item: CosmeticItem; onClose: () => void }) {
   const handleSell = () => {
-    // TODO: Call createListing() via Privy sendTransaction
     alert('Listed for sale! (mock)');
     onClose();
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div
         className="w-full aspect-square max-h-48 rounded-2xl flex items-center justify-center"
-        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}15` }}
+        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}08` }}
       >
-        <Package size={64} style={{ color: RARITY_COLORS[item.rarity] }} />
+        <Package size={56} style={{ color: RARITY_COLORS[item.rarity], opacity: 0.5 }} />
       </div>
 
       <div className="text-center">
@@ -229,10 +227,10 @@ function ItemDetail({ item, onClose }: { item: CosmeticItem; onClose: () => void
       </div>
 
       <div className="flex gap-3">
-        <Button variant="secondary" size="lg" className="flex-1">
+        <Button variant="secondary" size="lg" className="flex-1 rounded-2xl">
           Equip
         </Button>
-        <Button variant="outline" size="lg" className="flex-1" onClick={handleSell}>
+        <Button variant="outline" size="lg" className="flex-1 rounded-2xl" onClick={handleSell}>
           Sell
         </Button>
       </div>

@@ -13,8 +13,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         supportedChains: [arbitrumSepolia],
         appearance: {
           theme: 'light',
-          accentColor: '#2563EB',
-          logo: '/runera-logo.svg',
+          accentColor: '#0072F4',
+          logo: '/runera biru.png',
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {

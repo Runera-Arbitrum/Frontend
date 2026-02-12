@@ -1,61 +1,63 @@
 @import "tailwindcss";
 
 /* ============================================
-   Runera Design System
-   Colors: Blue, White, Black/Gray
-   Mobile-first approach
+   Runera Design System — Gentler Streak Inspired
+   Soft, calm, minimal, premium iOS-style
    ============================================ */
 
 @theme inline {
-  /* Primary Blue Palette */
-  --color-primary: #2563EB;
-  --color-primary-light: #3B82F6;
-  --color-primary-dark: #1D4ED8;
-  --color-primary-50: #EFF6FF;
-  --color-primary-100: #DBEAFE;
-  --color-primary-200: #BFDBFE;
+  /* Primary Blue — vibrant #0072F4 */
+  --color-primary: #0072F4;
+  --color-primary-light: #3B93FF;
+  --color-primary-dark: #0059C2;
+  --color-primary-50: #EBF3FF;
+  --color-primary-100: #D6E8FF;
+  --color-primary-200: #ADC8FF;
 
   /* Neutral Palette */
   --color-surface: #FFFFFF;
-  --color-surface-secondary: #F8FAFC;
-  --color-surface-tertiary: #F1F5F9;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-surface-secondary: #F7F8FA;
+  --color-surface-tertiary: #F0F1F4;
+  --color-surface-warm: #FAFAF8;
+  --color-border: #E2E5EA;
+  --color-border-light: #ECEEF2;
 
-  /* Text */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-tertiary: #94A3B8;
+  /* Text — clear contrast */
+  --color-text-primary: #0F1729;
+  --color-text-secondary: #3D4B5C;
+  --color-text-tertiary: #8893A2;
   --color-text-inverse: #FFFFFF;
 
-  /* Status */
+  /* Status — vivid, clear */
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
   --color-info: #06B6D4;
 
-  /* Tier Colors */
+  /* Tier Colors — rich */
   --color-tier-bronze: #CD7F32;
-  --color-tier-silver: #C0C0C0;
+  --color-tier-silver: #A8B4BD;
   --color-tier-gold: #FFD700;
-  --color-tier-platinum: #E5E4E2;
-  --color-tier-diamond: #B9F2FF;
+  --color-tier-platinum: #B0C4CE;
+  --color-tier-diamond: #48C9F4;
 
-  /* Rarity */
-  --color-rarity-common: #9CA3AF;
-  --color-rarity-rare: #3B82F6;
+  /* Rarity — vivid */
+  --color-rarity-common: #8893A2;
+  --color-rarity-rare: #0072F4;
   --color-rarity-epic: #8B5CF6;
   --color-rarity-legendary: #F59E0B;
   --color-rarity-mythic: #EF4444;
 
   /* Fonts */
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-bottom-nav: 0 -1px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-bottom-nav: 0 -1px 20px rgba(0, 0, 0, 0.05);
+  --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-gentle: 0 2px 10px rgba(0, 114, 244, 0.15);
 }
 
 /* Base styles */
@@ -70,12 +72,13 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-surface-secondary);
+  background: #F5F6F8;
   color: var(--color-text-primary);
   min-height: 100dvh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 /* Mobile container - max 430px centered */
@@ -85,7 +88,7 @@ body {
   min-height: 100dvh;
   background: var(--color-surface);
   position: relative;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.03);
 }
 
 /* Hide scrollbar but keep functionality */
@@ -97,27 +100,27 @@ body {
   display: none;
 }
 
-/* Tier badge gradients */
-.tier-bronze { background: linear-gradient(135deg, #CD7F32, #E8A854); }
-.tier-silver { background: linear-gradient(135deg, #C0C0C0, #E8E8E8); }
-.tier-gold { background: linear-gradient(135deg, #FFD700, #FFF176); }
-.tier-platinum { background: linear-gradient(135deg, #E5E4E2, #F5F5F5); }
-.tier-diamond { background: linear-gradient(135deg, #B9F2FF, #E0F7FA); }
+/* Tier badge gradients — rich */
+.tier-bronze { background: linear-gradient(135deg, #CD7F32, #E8A84C); }
+.tier-silver { background: linear-gradient(135deg, #A8B4BD, #CDD5DC); }
+.tier-gold { background: linear-gradient(135deg, #FFD700, #FFE44D); }
+.tier-platinum { background: linear-gradient(135deg, #B0C4CE, #D0DCE4); }
+.tier-diamond { background: linear-gradient(135deg, #48C9F4, #7EDCFF); }
 
-/* Smooth page transitions */
+/* Smooth page transitions — gentle, organic */
 .page-enter {
-  animation: fadeIn 0.2s ease-out;
+  animation: gentleFadeIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+@keyframes gentleFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Pulse animation for live tracking */
+/* Pulse animation for live tracking — softer */
 @keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(2); opacity: 0; }
+  0% { transform: scale(0.9); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 .pulse-dot::before {
@@ -126,10 +129,20 @@ body {
   inset: -4px;
   border-radius: 50%;
   background: var(--color-primary);
-  animation: pulse-ring 1.5s ease-out infinite;
+  opacity: 0.4;
+  animation: pulse-ring 2s ease-out infinite;
 }
 
-/* Leaflet map overrides for mobile */
+/* Soft gradient backgrounds */
+.bg-gentle-gradient {
+  background: linear-gradient(180deg, #EBF3FF 0%, #FFFFFF 100%);
+}
+
+.bg-warm-gradient {
+  background: linear-gradient(180deg, #FAFAF8 0%, #FFFFFF 60%);
+}
+
+/* Leaflet map overrides — softer */
 .leaflet-container {
   width: 100%;
   height: 100%;
@@ -139,11 +152,23 @@ body {
 
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: var(--shadow-card) !important;
+  box-shadow: var(--shadow-soft) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
 }
 
 .leaflet-control-zoom a {
   background: var(--color-surface) !important;
   color: var(--color-text-primary) !important;
   border: none !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+
+/* iOS-style safe area */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

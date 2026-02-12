@@ -26,9 +26,10 @@ export default function Card({
   return (
     <div
       className={cn(
-        'rounded-2xl bg-surface border border-border-light',
+        'rounded-2xl bg-surface border border-border-light/70',
         'shadow-card',
-        hoverable && 'hover:shadow-card-hover transition-shadow duration-200 cursor-pointer',
+        hoverable && 'hover:shadow-card-hover active:scale-[0.99] transition-all duration-250 cursor-pointer',
+        !hoverable && 'transition-shadow duration-250',
         paddingStyles[padding],
         className,
       )}
@@ -39,7 +40,6 @@ export default function Card({
   );
 }
 
-// Sub-components for structured cards
 export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div className={cn('flex items-center justify-between mb-3', className)}>
@@ -50,7 +50,7 @@ export function CardHeader({ children, className }: { children: ReactNode; class
 
 export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <h3 className={cn('text-sm font-semibold text-text-primary', className)}>
+    <h3 className={cn('text-sm font-semibold text-text-primary tracking-tight', className)}>
       {children}
     </h3>
   );

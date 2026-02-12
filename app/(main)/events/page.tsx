@@ -30,17 +30,17 @@ export default function EventsPage() {
     <div className="page-enter">
       <Header title="Events" subtitle="Join challenges & earn rewards" />
 
-      {/* Filter Tabs */}
-      <div className="px-4 pt-3 pb-2 flex gap-2">
+      {/* Filter Tabs — soft pills */}
+      <div className="px-5 pt-3 pb-2 flex gap-2">
         {(['all', 'joined', 'upcoming'] as FilterTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'px-4 py-1.5 rounded-full text-xs font-medium transition-colors',
+              'px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
               activeTab === tab
-                ? 'bg-primary text-text-inverse'
-                : 'bg-surface-tertiary text-text-secondary',
+                ? 'bg-primary/90 text-text-inverse shadow-gentle'
+                : 'bg-surface-tertiary text-text-tertiary',
             )}
           >
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -49,10 +49,10 @@ export default function EventsPage() {
       </div>
 
       {/* Event List */}
-      <div className="px-4 space-y-3 mt-1 pb-4">
+      <div className="px-5 space-y-3 mt-2 pb-6">
         {filtered.length === 0 ? (
           <EmptyState
-            icon={<Calendar size={40} />}
+            icon={<Calendar size={36} />}
             title="No events found"
             description="Check back later for new challenges"
           />
@@ -87,23 +87,23 @@ function EventCard({ event, onPress }: { event: RunEvent; onPress: () => void })
     <Card hoverable onClick={onPress}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-sm font-bold text-text-primary">{event.name}</h3>
+          <div className="flex items-center gap-2 mb-1.5">
+            <h3 className="text-sm font-semibold text-text-primary">{event.name}</h3>
             {isJoined && <Badge variant="blue">Joined</Badge>}
           </div>
           <div className="flex items-center gap-3 text-xs text-text-tertiary">
             <span className="flex items-center gap-1">
-              <Target size={12} /> {formatDistance(event.targetDistanceMeters)}
+              <Target size={12} className="text-text-tertiary/70" /> {formatDistance(event.targetDistanceMeters)}
             </span>
             <span className="flex items-center gap-1">
-              <Award size={12} /> +{event.expReward} XP
+              <Award size={12} className="text-text-tertiary/70" /> +{event.expReward} XP
             </span>
           </div>
         </div>
-        <ChevronRight size={18} className="text-text-tertiary mt-1 shrink-0" />
+        <ChevronRight size={16} className="text-text-tertiary/50 mt-1 shrink-0" />
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light/50">
         <div className="flex items-center gap-2">
           <TierBadge tier={event.minTier} />
           {isActive ? (
@@ -125,44 +125,43 @@ function EventDetail({ event, onClose }: { event: RunEvent; onClose: () => void 
   const isEligible = event.isEligible;
 
   const handleJoin = () => {
-    // TODO: Call joinEvent() API
     alert('Event joined! (mock)');
     onClose();
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <DetailStat icon={<Target size={16} />} label="Target" value={formatDistance(event.targetDistanceMeters)} />
-        <DetailStat icon={<Award size={16} />} label="Reward" value={`${event.expReward} XP`} />
-        <DetailStat icon={<Clock size={16} />} label="Starts" value={formatDate(event.startTime)} />
-        <DetailStat icon={<Calendar size={16} />} label="Ends" value={formatDate(event.endTime)} />
+        <DetailStat icon={<Target size={15} />} label="Target" value={formatDistance(event.targetDistanceMeters)} />
+        <DetailStat icon={<Award size={15} />} label="Reward" value={`${event.expReward} XP`} />
+        <DetailStat icon={<Clock size={15} />} label="Starts" value={formatDate(event.startTime)} />
+        <DetailStat icon={<Calendar size={15} />} label="Ends" value={formatDate(event.endTime)} />
       </div>
 
-      <div className="bg-surface-tertiary rounded-xl p-3">
+      <div className="bg-surface-tertiary/60 rounded-2xl p-4">
         <p className="text-xs font-medium text-text-secondary mb-2">Requirements</p>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-secondary">Min Tier:</span>
+          <span className="text-xs text-text-tertiary">Min Tier:</span>
           <TierBadge tier={event.minTier} />
         </div>
         {event.minTotalDistanceMeters > 0 && (
-          <p className="text-xs text-text-secondary mt-1">
+          <p className="text-xs text-text-tertiary mt-1.5">
             Min Distance: {formatDistance(event.minTotalDistanceMeters)}
           </p>
         )}
       </div>
 
       {isJoined ? (
-        <div className="bg-primary-50 rounded-xl p-4 text-center">
-          <Trophy size={24} className="text-primary mx-auto mb-2" />
+        <div className="bg-primary-50/50 rounded-2xl p-5 text-center">
+          <Trophy size={22} className="text-primary/70 mx-auto mb-2" />
           <p className="text-sm font-semibold text-primary">You&apos;re in!</p>
-          <p className="text-xs text-text-secondary mt-1">Keep running to complete this challenge</p>
+          <p className="text-xs text-text-tertiary mt-1">Keep running to complete this challenge</p>
         </div>
       ) : (
         <Button
           variant="primary"
           size="lg"
-          className="w-full"
+          className="w-full rounded-2xl"
           onClick={handleJoin}
           disabled={!isEligible}
         >
@@ -175,8 +174,8 @@ function EventDetail({ event, onClose }: { event: RunEvent; onClose: () => void 
 
 function DetailStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-surface-tertiary rounded-xl p-3 flex items-center gap-3">
-      <div className="text-primary">{icon}</div>
+    <div className="bg-surface-tertiary/60 rounded-2xl p-3.5 flex items-center gap-3">
+      <div className="text-primary/60">{icon}</div>
       <div>
         <p className="text-[10px] text-text-tertiary">{label}</p>
         <p className="text-sm font-semibold text-text-primary">{value}</p>
