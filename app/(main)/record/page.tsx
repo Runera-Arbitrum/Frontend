@@ -8,6 +8,7 @@ import { submitRun } from "@/lib/api";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import {
   Play,
@@ -42,6 +43,7 @@ interface ValidateStep {
 
 export default function RecordPage() {
   const { walletAddress } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [state, setState] = useState<RecordState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [runView, setRunView] = useState<RunView>("map");
@@ -166,15 +168,15 @@ export default function RecordPage() {
 
       if (result.success && result.status === "VERIFIED") {
         setXpEarned(result.xpEarned || 0);
-        alert(`Run verified! +${result.xpEarned || 0} XP earned`);
+        toastSuccess(`Run verified! +${result.xpEarned || 0} XP earned`);
       } else if (result.status === "REJECTED") {
-        alert(
+        toastError(
           `Run rejected: ${result.message || result.reasonCode || "Unknown reason"}`,
         );
       }
       handleReset();
     } catch (err) {
-      alert(
+      toastError(
         "Failed to submit run: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );

@@ -14,6 +14,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { ShoppingBag, Package, Sparkles, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBalance } from "@/hooks/useBalance";
+import { useToast } from "@/components/ui/Toast";
 
 type MarketTab = "listings" | "collection";
 
@@ -272,8 +273,9 @@ function ListingDetail({
   listing: MarketListing;
   onClose: () => void;
 }) {
+  const { info } = useToast();
   const handleBuy = () => {
-    alert("Purchase feature coming soon! Contract integration required.");
+    info("Purchase feature coming soon!");
     onClose();
   };
 
@@ -333,8 +335,9 @@ function ItemDetail({
   item: CosmeticItem;
   onClose: () => void;
 }) {
+  const { info } = useToast();
   const handleSell = () => {
-    alert("Sell feature coming soon! Contract integration required.");
+    info("Sell feature coming soon!");
     onClose();
   };
 

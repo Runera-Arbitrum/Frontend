@@ -3,6 +3,7 @@
 import { PrivyProvider } from '@privy-io/react-auth';
 import { arbitrumSepolia } from 'viem/chains';
 import { PRIVY_APP_ID } from '@/lib/constants';
+import { ToastProvider } from '@/components/ui/Toast';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +17,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           accentColor: '#0072F4',
           logo: '/runera biru.png',
         },
-        loginMethods: ['email', 'google', 'wallet'],
+        loginMethods: ['email', 'google'],
         embeddedWallets: {
           ethereum: {
             createOnLogin: 'users-without-wallets',
@@ -24,7 +25,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      {children}
+      <ToastProvider>
+        {children}
+      </ToastProvider>
     </PrivyProvider>
   );
 }

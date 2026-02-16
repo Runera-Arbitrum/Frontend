@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import Badge, { TierBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import { useToast } from "@/components/ui/Toast";
 import {
   Calendar,
   Clock,
@@ -200,6 +201,7 @@ function EventDetail({
   onClose: () => void;
 }) {
   const { walletAddress } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const isJoined = event.participationStatus === "JOINED";
   const isEligible = event.isEligible;
   const [joining, setJoining] = useState(false);
@@ -209,10 +211,10 @@ function EventDetail({
     try {
       setJoining(true);
       await apiJoinEvent(event.eventId, walletAddress);
-      alert("Successfully joined the event!");
+      toastSuccess("Successfully joined the event!");
       onClose();
     } catch (err) {
-      alert(
+      toastError(
         "Failed to join event: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );

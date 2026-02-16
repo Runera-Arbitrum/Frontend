@@ -75,9 +75,9 @@ export default function LoginPage() {
         </Button>
 
         <p className="text-center text-[11px] text-text-tertiary mt-5 px-2 leading-relaxed">
-          Connect with email, Google, or your wallet.
+          Sign in with email or Google to get started.
           <br />
-          Powered by Privy — your keys, your wallet.
+          Powered by Privy — secure and easy.
         </p>
       </div>
     </div>

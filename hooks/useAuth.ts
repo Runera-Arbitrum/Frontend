@@ -13,17 +13,14 @@ export function useAuth() {
   const { wallets } = useWallets();
 
   const walletAddress = useMemo(() => {
-    // Prefer embedded wallet, then first external
     if (!user) return null;
     const embedded = wallets.find((w) => w.walletClientType === 'privy');
-    if (embedded) return embedded.address;
-    return wallets[0]?.address ?? null;
+    return embedded?.address ?? null;
   }, [user, wallets]);
 
   const activeWallet = useMemo(() => {
-    if (!wallets.length) return null;
     const embedded = wallets.find((w) => w.walletClientType === 'privy');
-    return embedded ?? wallets[0] ?? null;
+    return embedded ?? null;
   }, [wallets]);
 
   return {

@@ -133,6 +133,25 @@ body {
   animation: pulse-ring 2s ease-out infinite;
 }
 
+/* Toast notifications */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-100%); }
+}
+
+.animate-toast-in {
+  animation: toastSlideIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-toast-out {
+  animation: toastSlideOut 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
+}
+
 /* Soft gradient backgrounds */
 .bg-gentle-gradient {
   background: linear-gradient(180deg, #EBF3FF 0%, #FFFFFF 100%);

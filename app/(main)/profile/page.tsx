@@ -16,6 +16,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge, { TierBadge, RarityBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -84,6 +85,7 @@ const getMonthlyStreakData = (runs: Run[]) => {
 
 export default function ProfilePage() {
   const { walletAddress, activeWallet, logout } = useAuth();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -181,14 +183,12 @@ export default function ProfilePage() {
       const result = await requestFaucet(walletAddress);
       if (result.success) {
         const amount = result.amount || (result.amountWei ? `${Number(result.amountWei) / 1e18}` : '0.0005');
-        alert(
-          `Faucet sent! TX: ${result.txHash}\nAmount: ${amount} ETH`,
-        );
+        toastSuccess(`Faucet sent! ${amount} ETH`);
       } else {
-        alert(`Faucet error: ${result.error}`);
+        toastError(`Faucet error: ${result.error}`);
       }
     } catch (err) {
-      alert(
+      toastError(
         "Faucet request failed: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );
@@ -221,7 +221,7 @@ export default function ProfilePage() {
         args: [],
       });
 
-      alert(`Profile registered! TX: ${txHash}`);
+      toastSuccess("Profile registered successfully!");
 
       // Refresh profile after a short delay for indexing
       setTimeout(async () => {
@@ -233,7 +233,7 @@ export default function ProfilePage() {
         }
       }, 3000);
     } catch (err) {
-      alert(
+      toastError(
         "Mint failed: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );
