@@ -202,6 +202,9 @@ export default function ProfilePage() {
     try {
       setMintLoading(true);
 
+      // Switch wallet to Arbitrum Sepolia before sending transaction
+      await activeWallet.switchChain(arbitrumSepolia.id);
+
       // Get Privy wallet provider and create viem wallet client
       const provider = await activeWallet.getEthereumProvider();
       const walletClient = createWalletClient({
