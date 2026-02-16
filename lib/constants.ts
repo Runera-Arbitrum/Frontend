@@ -9,15 +9,18 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.rune
 export const CHAIN_ID = 421614; // Arbitrum Sepolia
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc';
 
-// Contract addresses (read from env to avoid exposing in client bundle)
+// Contract addresses on Arbitrum Sepolia (Chain ID: 421614)
 export const CONTRACT_ADDRESSES = {
-  accessControl: process.env.NEXT_PUBLIC_ACCESS_CONTROL || '',
-  eventRegistry: process.env.NEXT_PUBLIC_EVENT_REGISTRY || '',
-  profileNFT: process.env.NEXT_PUBLIC_PROFILE_NFT || '',
-  achievementNFT: process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT || '',
-  cosmeticNFT: process.env.NEXT_PUBLIC_COSMETIC_NFT || '',
-  marketplace: process.env.NEXT_PUBLIC_MARKETPLACE || '',
+  accessControl: process.env.NEXT_PUBLIC_ACCESS_CONTROL || '0x3518B6A434F79625011321E348d14895946e3Be9',
+  eventRegistry: process.env.NEXT_PUBLIC_EVENT_REGISTRY || '0xc3a995a9756146b59Ec874bde2A326944E6F7B8E',
+  profileNFT: process.env.NEXT_PUBLIC_PROFILE_NFT || '0xAcb9b3e8dadA2d25Db5420634Fb0eD96161824A5',
+  achievementNFT: process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT || '0xb2935413BAB7ABc75BBf1A91082b0F32cbB6E74F',
+  cosmeticNFT: process.env.NEXT_PUBLIC_COSMETIC_NFT || '0x94777E23b8E545eC57BD84DB58e0A800E9Db5aAD',
+  marketplace: process.env.NEXT_PUBLIC_MARKETPLACE || '0x786b9b1475fFB5FA79af27054C614B53Efb053de',
 } as const;
+
+// Backend Signer Address (for verification)
+export const BACKEND_SIGNER_ADDRESS = '0x0246fe9B176E0225f9F5d7A2372DAc6865B55c18' as const;
 
 // XP system
 export const XP_PER_VERIFIED_RUN = 100;

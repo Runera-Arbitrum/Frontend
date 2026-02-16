@@ -1,10 +1,9 @@
 // ============================================
 // API Client
-// Prepared for backend integration
-// Currently returns mock data for development
+// Integrated with Runera Backend API
 // ============================================
 
-import { API_BASE_URL } from './constants';
+import { generateDeviceHash } from './utils/device';
 import type {
   UserProfile,
   Run,
@@ -13,13 +12,10 @@ import type {
   MarketListing,
   Achievement,
 } from './types';
-import {
-  MOCK_USER,
-  MOCK_RUNS,
-  MOCK_EVENTS,
-  MOCK_LISTINGS,
-  MOCK_ACHIEVEMENTS,
-} from './mock-data';
+
+// Use Next.js rewrite proxy to bypass CORS
+// Browser requests go to /api/backend/... → Next.js forwards to Railway backend
+const API_PROXY_BASE = '/api/backend';
 
 // --- Helpers ---
 
@@ -33,85 +29,189 @@ async function apiFetch<T>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${API_PROXY_BASE}${path}`, {
     ...fetchOptions,
     headers: { ...headers, ...(fetchOptions.headers as Record<string, string>) },
   });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `API error: ${res.status}`);
+    const errorMsg = body.error?.message || body.message || body.error || `API error: ${res.status}`;
+    throw new Error(errorMsg);
   }
   return res.json();
 }
 
 // --- Auth ---
-// TODO: Integrate with POST /auth/nonce and POST /auth/connect
+// Optional: Most endpoints don't require auth for MVP
 
-export async function requestAuthNonce(_walletAddress: string): Promise<{ nonce: string; message: string }> {
-  // TODO: return apiFetch('/auth/nonce', { method: 'POST', body: JSON.stringify({ walletAddress }) });
-  return { nonce: 'mock-nonce', message: 'RUNERA login\nNonce: mock-nonce' };
+export async function requestAuthNonce(walletAddress: string): Promise<{ nonce: string; message: string }> {
+  return apiFetch('/auth/nonce', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress }),
+  });
 }
 
 export async function connectWallet(
-  _walletAddress: string,
-  _signature: string,
-  _nonce: string,
+  walletAddress: string,
+  signature: string,
+  nonce: string,
 ): Promise<{ token: string }> {
-  // TODO: return apiFetch('/auth/connect', { method: 'POST', body: JSON.stringify({ walletAddress, signature, nonce }) });
-  return { token: 'mock-jwt-token' };
+  return apiFetch('/auth/connect', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress, signature, nonce }),
+  });
 }
 
 // --- Profile ---
-// TODO: Integrate with GET /profile/:address/metadata and POST /profile/gasless-register
 
-export async function getProfile(_walletAddress: string): Promise<UserProfile> {
-  // TODO: return apiFetch(`/profile/${walletAddress}/metadata`);
-  return MOCK_USER;
+export async function getProfile(walletAddress: string): Promise<UserProfile> {
+  const res = await apiFetch<any>(`/profile/${walletAddress}`);
+  // Handle both { profile: {...} } and direct object formats
+  return res.profile || res;
 }
 
-export async function registerProfile(_token: string): Promise<{ txHash: string }> {
-  // TODO: return apiFetch('/profile/gasless-register', { method: 'POST', token });
-  return { txHash: '0xmocktx' };
+export async function registerProfile(
+  walletAddress: string,
+  token?: string
+): Promise<{ success: boolean; txHash: string; tokenId: number; profileNFTAddress: string }> {
+  return apiFetch('/profile/gasless-register', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress }),
+    token,
+  });
 }
 
 // --- Runs ---
-// TODO: Integrate with POST /run/submit and GET /runs
 
-export async function submitRun(_payload: RunSubmitPayload, _token?: string): Promise<Run> {
-  // TODO: return apiFetch('/run/submit', { method: 'POST', body: JSON.stringify(payload), token });
-  return MOCK_RUNS[0];
+export async function submitRun(
+  payload: RunSubmitPayload,
+  token?: string
+): Promise<{
+  success: boolean;
+  runId: string;
+  status: 'VERIFIED' | 'REJECTED';
+  xpEarned?: number;
+  reasonCode?: string;
+  message?: string;
+}> {
+  // Add device fingerprint to payload
+  const deviceHash = generateDeviceHash();
+  const enrichedPayload = {
+    ...payload,
+    deviceHash,
+  };
+
+  return apiFetch('/run/submit', {
+    method: 'POST',
+    body: JSON.stringify(enrichedPayload),
+    token,
+  });
 }
 
-export async function getRuns(_walletAddress: string, _limit = 20, _offset = 0): Promise<Run[]> {
-  // TODO: return apiFetch(`/runs?walletAddress=${walletAddress}&limit=${limit}&offset=${offset}`);
-  return MOCK_RUNS;
+export async function getRuns(
+  walletAddress: string,
+  limit = 20,
+  offset = 0
+): Promise<{
+  success: boolean;
+  runs: Run[];
+  total: number;
+  limit: number;
+  offset: number;
+}> {
+  return apiFetch(`/runs?walletAddress=${walletAddress}&limit=${limit}&offset=${offset}`);
+}
+
+export async function syncProgress(
+  walletAddress: string,
+  token?: string
+): Promise<{
+  success: boolean;
+  signature: string;
+  data: {
+    level: number;
+    xp: number;
+    totalDistance: number;
+    nonce: number;
+  };
+}> {
+  return apiFetch('/run/sync', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress }),
+    token,
+  });
 }
 
 // --- Events ---
-// TODO: Integrate with GET /events, POST /events/:id/join, GET /events/:id/status
 
-export async function getEvents(_walletAddress?: string): Promise<RunEvent[]> {
-  // TODO: return apiFetch(`/events${walletAddress ? `?walletAddress=${walletAddress}` : ''}`);
-  return MOCK_EVENTS;
+export async function getEvents(
+  walletAddress?: string
+): Promise<{
+  success: boolean;
+  events: Array<{
+    eventId: string;
+    name: string;
+    targetDistanceMeters: number;
+    expReward: number;
+    startTime: string;
+    endTime: string;
+    active: boolean;
+    userProgress?: {
+      distanceCovered: number;
+      isEligible: boolean;
+      hasJoined: boolean;
+      hasClaimed: boolean;
+    };
+  }>;
+}> {
+  return apiFetch(`/events${walletAddress ? `?walletAddress=${walletAddress}` : ''}`);
 }
 
-export async function joinEvent(_eventId: string, _token?: string): Promise<{ status: string }> {
-  // TODO: return apiFetch(`/events/${eventId}/join`, { method: 'POST', token });
-  return { status: 'JOINED' };
+export async function joinEvent(
+  eventId: string,
+  walletAddress: string,
+  token?: string
+): Promise<{ success: boolean; status: string }> {
+  return apiFetch(`/events/${eventId}/join`, {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress }),
+    token,
+  });
+}
+
+export async function claimAchievement(
+  walletAddress: string,
+  eventId: string,
+  token?: string
+): Promise<{
+  success: boolean;
+  signature: string;
+  achievementData: {
+    eventId: string;
+    tokenId: number;
+    nonce: number;
+  };
+}> {
+  return apiFetch('/events/genesis/claim', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress, eventId }),
+    token,
+  });
 }
 
 // --- Market ---
-// TODO: Integrate with smart contract calls via Privy wallet
+// Note: Market functions call smart contracts directly, not backend API
+// These are handled via contract helpers in lib/contracts/
 
 export async function getListings(): Promise<MarketListing[]> {
-  // TODO: Call RuneraMarketplace.getListingsByItem() via contract
-  return MOCK_LISTINGS;
+  // TODO: Implement using lib/contracts/ helpers
+  return [];
 }
 
 export async function buyListing(_listingId: number, _amount: number): Promise<{ txHash: string }> {
-  // TODO: Call RuneraMarketplace.buyItem() via Privy sendTransaction
-  return { txHash: '0xmocktx' };
+  // TODO: Implement using Privy wallet + marketplace contract
+  throw new Error('Not implemented - use contract helpers');
 }
 
 export async function createListing(
@@ -119,24 +219,34 @@ export async function createListing(
   _amount: number,
   _pricePerUnit: string,
 ): Promise<{ listingId: number }> {
-  // TODO: Call RuneraMarketplace.createListing() via Privy sendTransaction
-  return { listingId: 99 };
+  // TODO: Implement using Privy wallet + marketplace contract
+  throw new Error('Not implemented - use contract helpers');
 }
 
 // --- Achievements ---
-// TODO: Integrate with smart contract + backend
+// Note: Achievement ownership is queried from smart contract
+// Use lib/contracts/achievements.ts helpers
 
 export async function getAchievements(_walletAddress: string): Promise<Achievement[]> {
-  // TODO: Call RuneraAchievementDynamicNFT.getUserAchievements() + metadata
-  return MOCK_ACHIEVEMENTS;
+  // TODO: Implement using lib/contracts/achievements helpers
+  return [];
 }
 
 // --- Faucet ---
-// TODO: Integrate with POST /faucet/request
 
-export async function requestFaucet(_walletAddress: string): Promise<{ txHash: string }> {
-  // TODO: return apiFetch('/faucet/request', { method: 'POST', body: JSON.stringify({ walletAddress }) });
-  return { txHash: '0xmocktx' };
+export async function requestFaucet(
+  walletAddress: string
+): Promise<{
+  success: boolean;
+  txHash?: string;
+  amount?: string;
+  amountWei?: string;
+  error?: string;
+}> {
+  return apiFetch('/faucet/request', {
+    method: 'POST',
+    body: JSON.stringify({ walletAddress }),
+  });
 }
 
 // Re-export for convenience
