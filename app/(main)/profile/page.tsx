@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getProfile, requestFaucet, registerProfile } from "@/lib/api";
+import { getProfile, requestFaucet } from "@/lib/api";
 import { getRuns } from "@/lib/api";
+import { createWalletClient, custom, type Address } from "viem";
+import { arbitrumSepolia } from "viem/chains";
+import { CONTRACT_ADDRESSES } from "@/lib/constants";
+import ProfileNFTABI from "@/lib/contracts/abis/RuneraProfileNFT.json";
 import type { UserProfile, Run, Achievement, CosmeticItem } from "@/lib/types";
 import { truncateAddress, formatDistance } from "@/lib/utils";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
@@ -79,7 +83,7 @@ const getMonthlyStreakData = (runs: Run[]) => {
 };
 
 export default function ProfilePage() {
-  const { walletAddress, logout } = useAuth();
+  const { walletAddress, activeWallet, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -194,18 +198,37 @@ export default function ProfilePage() {
   };
 
   const handleMintProfile = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress || !activeWallet) return;
     try {
       setMintLoading(true);
-      const result = await registerProfile(walletAddress);
-      if (result.success) {
-        alert(
-          `Profile NFT minted! TX: ${result.txHash}\nToken ID: ${result.tokenId}`,
-        );
-        // Refresh profile
-        const updatedProfile = await getProfile(walletAddress);
-        setUser(updatedProfile);
-      }
+
+      // Get Privy wallet provider and create viem wallet client
+      const provider = await activeWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        chain: arbitrumSepolia,
+        transport: custom(provider),
+        account: walletAddress as Address,
+      });
+
+      // Call register() directly on-chain (no params, msg.sender = user)
+      const txHash = await walletClient.writeContract({
+        address: CONTRACT_ADDRESSES.profileNFT as Address,
+        abi: ProfileNFTABI,
+        functionName: "register",
+        args: [],
+      });
+
+      alert(`Profile registered! TX: ${txHash}`);
+
+      // Refresh profile after a short delay for indexing
+      setTimeout(async () => {
+        try {
+          const updatedProfile = await getProfile(walletAddress);
+          setUser(updatedProfile);
+        } catch {
+          // Profile may not be indexed yet
+        }
+      }, 3000);
     } catch (err) {
       alert(
         "Mint failed: " +

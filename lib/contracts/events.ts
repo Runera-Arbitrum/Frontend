@@ -4,16 +4,15 @@ import { CONTRACT_ADDRESSES, RPC_URL } from '@/lib/constants';
 import EventRegistryABI from './abis/RuneraEventRegistry.json';
 
 /**
- * Event data structure matching smart contract
+ * Event config structure matching smart contract (EventConfig)
  */
-export interface EventData {
+export interface EventConfig {
+  eventId: Hex;
   name: string;
-  description: string;
-  targetDistanceMeters: bigint;
-  minTier: number;
-  startTimestamp: bigint;
-  endTimestamp: bigint;
-  achievementTokenId: bigint;
+  startTime: bigint;
+  endTime: bigint;
+  maxParticipants: number;
+  currentParticipants: number;
   active: boolean;
 }
 
@@ -29,13 +28,11 @@ function getPublicClient() {
 
 /**
  * Get event data from blockchain
- * @param eventId - Event ID (bytes32)
- * @returns Event data or null
  */
-export async function getEvent(eventId: Hex): Promise<EventData | null> {
+export async function getEvent(eventId: Hex): Promise<EventConfig | null> {
   try {
     const client = getPublicClient();
-    const eventData = await client.readContract({
+    const data = await client.readContract({
       address: CONTRACT_ADDRESSES.eventRegistry as Address,
       abi: EventRegistryABI,
       functionName: 'getEvent',
@@ -43,14 +40,13 @@ export async function getEvent(eventId: Hex): Promise<EventData | null> {
     }) as any;
 
     return {
-      name: eventData.name,
-      description: eventData.description,
-      targetDistanceMeters: eventData.targetDistanceMeters,
-      minTier: eventData.minTier,
-      startTimestamp: eventData.startTimestamp,
-      endTimestamp: eventData.endTimestamp,
-      achievementTokenId: eventData.achievementTokenId,
-      active: eventData.active,
+      eventId: data.eventId,
+      name: data.name,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      maxParticipants: Number(data.maxParticipants),
+      currentParticipants: Number(data.currentParticipants),
+      active: data.active,
     };
   } catch (error) {
     console.error('Failed to get event data:', error);
@@ -59,134 +55,126 @@ export async function getEvent(eventId: Hex): Promise<EventData | null> {
 }
 
 /**
- * Get all active event IDs
- * @returns Array of active event IDs (bytes32[])
+ * Get total event count
  */
-export async function getAllActiveEvents(): Promise<Hex[]> {
+export async function getEventCount(): Promise<number> {
   try {
     const client = getPublicClient();
-    const eventIds = await client.readContract({
+    const count = await client.readContract({
       address: CONTRACT_ADDRESSES.eventRegistry as Address,
       abi: EventRegistryABI,
-      functionName: 'getAllActiveEvents',
-    }) as Hex[];
+      functionName: 'getEventCount',
+    }) as bigint;
 
-    return eventIds;
+    return Number(count);
   } catch (error) {
-    console.error('Failed to get active events:', error);
+    console.error('Failed to get event count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get event ID by index
+ */
+export async function getEventIdByIndex(index: number): Promise<Hex | null> {
+  try {
+    const client = getPublicClient();
+    const eventId = await client.readContract({
+      address: CONTRACT_ADDRESSES.eventRegistry as Address,
+      abi: EventRegistryABI,
+      functionName: 'getEventIdByIndex',
+      args: [BigInt(index)],
+    }) as Hex;
+
+    return eventId;
+  } catch (error) {
+    console.error('Failed to get event ID by index:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if event exists on-chain
+ */
+export async function eventExists(eventId: Hex): Promise<boolean> {
+  try {
+    const client = getPublicClient();
+    const exists = await client.readContract({
+      address: CONTRACT_ADDRESSES.eventRegistry as Address,
+      abi: EventRegistryABI,
+      functionName: 'eventExists',
+      args: [eventId],
+    }) as boolean;
+
+    return exists;
+  } catch (error) {
+    console.error('Failed to check event existence:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if event is active on-chain
+ */
+export async function isEventActiveOnChain(eventId: Hex): Promise<boolean> {
+  try {
+    const client = getPublicClient();
+    const active = await client.readContract({
+      address: CONTRACT_ADDRESSES.eventRegistry as Address,
+      abi: EventRegistryABI,
+      functionName: 'isEventActive',
+      args: [eventId],
+    }) as boolean;
+
+    return active;
+  } catch (error) {
+    console.error('Failed to check event active status:', error);
+    return false;
+  }
+}
+
+/**
+ * Get all events from blockchain
+ */
+export async function getAllEvents(): Promise<EventConfig[]> {
+  try {
+    const count = await getEventCount();
+    const events: EventConfig[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const eventId = await getEventIdByIndex(i);
+      if (eventId) {
+        const event = await getEvent(eventId);
+        if (event) {
+          events.push(event);
+        }
+      }
+    }
+
+    return events;
+  } catch (error) {
+    console.error('Failed to get all events:', error);
     return [];
   }
 }
 
 /**
- * Check if user has joined an event
- * @param address - User wallet address
- * @param eventId - Event ID (bytes32)
- * @returns true if user has joined
- */
-export async function hasJoinedEvent(address: Address, eventId: Hex): Promise<boolean> {
-  try {
-    const client = getPublicClient();
-    const joined = await client.readContract({
-      address: CONTRACT_ADDRESSES.eventRegistry as Address,
-      abi: EventRegistryABI,
-      functionName: 'hasJoined',
-      args: [address, eventId],
-    }) as boolean;
-
-    return joined;
-  } catch (error) {
-    console.error('Failed to check event join status:', error);
-    return false;
-  }
-}
-
-/**
- * Get user's progress for an event
- * @param address - User wallet address
- * @param eventId - Event ID (bytes32)
- * @returns Progress in meters
- */
-export async function getUserEventProgress(
-  address: Address,
-  eventId: Hex
-): Promise<bigint> {
-  try {
-    const client = getPublicClient();
-    const progress = await client.readContract({
-      address: CONTRACT_ADDRESSES.eventRegistry as Address,
-      abi: EventRegistryABI,
-      functionName: 'getUserProgress',
-      args: [address, eventId],
-    }) as bigint;
-
-    return progress;
-  } catch (error) {
-    console.error('Failed to get user event progress:', error);
-    return 0n;
-  }
-}
-
-/**
- * Check if user is eligible to claim achievement for event
- * @param address - User wallet address
- * @param eventId - Event ID (bytes32)
- * @returns true if eligible
- */
-export async function isEligibleForAchievement(
-  address: Address,
-  eventId: Hex
-): Promise<boolean> {
-  try {
-    const client = getPublicClient();
-    const eligible = await client.readContract({
-      address: CONTRACT_ADDRESSES.eventRegistry as Address,
-      abi: EventRegistryABI,
-      functionName: 'isEligible',
-      args: [address, eventId],
-    }) as boolean;
-
-    return eligible;
-  } catch (error) {
-    console.error('Failed to check eligibility:', error);
-    return false;
-  }
-}
-
-/**
  * Convert event ID string to bytes32
- * @param eventIdString - Event ID as string (e.g., "genesis10k")
- * @returns bytes32 formatted event ID
  */
 export function eventIdToBytes32(eventIdString: string): Hex {
   return keccak256(toBytes(eventIdString));
 }
 
 /**
- * Check if event is currently active (based on timestamps)
- * @param eventData - Event data from contract
- * @returns true if event is currently active
+ * Check if event is currently active (based on timestamps, client-side)
  */
-export function isEventActive(eventData: EventData): boolean {
+export function isEventActive(event: EventConfig): boolean {
   const now = BigInt(Math.floor(Date.now() / 1000));
   return (
-    eventData.active &&
-    now >= eventData.startTimestamp &&
-    now <= eventData.endTimestamp
+    event.active &&
+    now >= event.startTime &&
+    now <= event.endTime
   );
 }
 
-/**
- * Calculate progress percentage for an event
- * @param userProgress - User's progress in meters
- * @param targetDistance - Target distance in meters
- * @returns Progress percentage (0-100)
- */
-export function calculateEventProgress(
-  userProgress: bigint,
-  targetDistance: bigint
-): number {
-  if (targetDistance === 0n) return 0;
-  const percentage = (Number(userProgress) / Number(targetDistance)) * 100;
-  return Math.min(percentage, 100);
-}
+export { EventRegistryABI };

@@ -4,6 +4,17 @@ import { CONTRACT_ADDRESSES, RPC_URL } from '@/lib/constants';
 import AchievementNFTABI from './abis/RuneraAchievementNFT.json';
 
 /**
+ * Achievement data structure matching smart contract
+ */
+export interface AchievementData {
+  eventId: Hex;
+  tier: number;
+  unlockedAt: bigint;
+  metadataHash: Hex;
+  exists: boolean;
+}
+
+/**
  * Get public client for reading from blockchain
  */
 function getPublicClient() {
@@ -14,10 +25,7 @@ function getPublicClient() {
 }
 
 /**
- * Check if user has claimed an achievement for a specific event
- * @param address - User wallet address
- * @param eventId - Event ID (bytes32)
- * @returns true if already claimed
+ * Check if user has an achievement for a specific event
  */
 export async function hasClaimedAchievement(
   address: Address,
@@ -25,25 +33,91 @@ export async function hasClaimedAchievement(
 ): Promise<boolean> {
   try {
     const client = getPublicClient();
-    const claimed = await client.readContract({
+    const has = await client.readContract({
       address: CONTRACT_ADDRESSES.achievementNFT as Address,
       abi: AchievementNFTABI,
-      functionName: 'hasClaimed',
+      functionName: 'hasAchievement',
       args: [address, eventId],
     }) as boolean;
 
-    return claimed;
+    return has;
   } catch (error) {
-    console.error('Failed to check achievement claim:', error);
+    console.error('Failed to check achievement:', error);
     return false;
   }
 }
 
 /**
+ * Get achievement data for a user + event
+ */
+export async function getAchievement(
+  address: Address,
+  eventId: Hex
+): Promise<AchievementData | null> {
+  try {
+    const client = getPublicClient();
+    const data = await client.readContract({
+      address: CONTRACT_ADDRESSES.achievementNFT as Address,
+      abi: AchievementNFTABI,
+      functionName: 'getAchievement',
+      args: [address, eventId],
+    }) as any;
+
+    return {
+      eventId: data.eventId,
+      tier: Number(data.tier),
+      unlockedAt: data.unlockedAt,
+      metadataHash: data.metadataHash,
+      exists: data.exists,
+    };
+  } catch (error) {
+    console.error('Failed to get achievement:', error);
+    return null;
+  }
+}
+
+/**
+ * Get all achievement event IDs for a user
+ */
+export async function getUserAchievements(address: Address): Promise<Hex[]> {
+  try {
+    const client = getPublicClient();
+    const eventIds = await client.readContract({
+      address: CONTRACT_ADDRESSES.achievementNFT as Address,
+      abi: AchievementNFTABI,
+      functionName: 'getUserAchievements',
+      args: [address],
+    }) as Hex[];
+
+    return eventIds;
+  } catch (error) {
+    console.error('Failed to get user achievements:', error);
+    return [];
+  }
+}
+
+/**
+ * Get user's total achievement count
+ */
+export async function getUserAchievementCount(address: Address): Promise<number> {
+  try {
+    const client = getPublicClient();
+    const count = await client.readContract({
+      address: CONTRACT_ADDRESSES.achievementNFT as Address,
+      abi: AchievementNFTABI,
+      functionName: 'getUserAchievementCount',
+      args: [address],
+    }) as bigint;
+
+    return Number(count);
+  } catch (error) {
+    console.error('Failed to get achievement count:', error);
+    return 0;
+  }
+}
+
+/**
  * Get user's balance of a specific achievement NFT
- * @param address - User wallet address
- * @param tokenId - Achievement token ID
- * @returns Balance (should be 0 or 1 for achievements)
  */
 export async function getAchievementBalance(
   address: Address,
@@ -66,36 +140,7 @@ export async function getAchievementBalance(
 }
 
 /**
- * Get multiple achievement balances at once
- * @param address - User wallet address
- * @param tokenIds - Array of achievement token IDs
- * @returns Array of balances
- */
-export async function getAchievementBalances(
-  address: Address,
-  tokenIds: bigint[]
-): Promise<bigint[]> {
-  try {
-    const client = getPublicClient();
-    const addresses = new Array(tokenIds.length).fill(address);
-    const balances = await client.readContract({
-      address: CONTRACT_ADDRESSES.achievementNFT as Address,
-      abi: AchievementNFTABI,
-      functionName: 'balanceOfBatch',
-      args: [addresses, tokenIds],
-    }) as bigint[];
-
-    return balances;
-  } catch (error) {
-    console.error('Failed to get achievement balances:', error);
-    return new Array(tokenIds.length).fill(0n);
-  }
-}
-
-/**
  * Get achievement NFT metadata URI
- * @param tokenId - Achievement token ID
- * @returns Token URI or null
  */
 export async function getAchievementURI(tokenId: bigint): Promise<string | null> {
   try {
@@ -113,3 +158,5 @@ export async function getAchievementURI(tokenId: bigint): Promise<string | null>
     return null;
   }
 }
+
+export { AchievementNFTABI };

@@ -1,16 +1,20 @@
-import { createPublicClient, createWalletClient, http, type WalletClient, type PublicClient, type Address, type Hex } from 'viem';
+import { createPublicClient, http, type PublicClient, type Address } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
 import { CONTRACT_ADDRESSES, RPC_URL } from '@/lib/constants';
 import ProfileNFTABI from './abis/RuneraProfileNFT.json';
 
 /**
- * Profile stats structure matching smart contract
+ * Profile data structure matching smart contract (ProfileData)
  */
-export interface ProfileStats {
-  level: bigint;
+export interface ProfileData {
   xp: bigint;
-  totalDistance: bigint;
-  tier: number;
+  level: number;
+  runCount: number;
+  achievementCount: number;
+  totalDistanceMeters: bigint;
+  longestStreakDays: number;
+  lastUpdated: bigint;
+  exists: boolean;
 }
 
 /**
@@ -24,58 +28,96 @@ export function getPublicClient(): PublicClient {
 }
 
 /**
- * Check if user has a Profile NFT
- * @param address - User wallet address
- * @returns true if user has minted Profile NFT
+ * Check if user has registered a Profile
  */
 export async function hasProfileNFT(address: Address): Promise<boolean> {
   try {
     const client = getPublicClient();
-    const balance = await client.readContract({
+    const has = await client.readContract({
       address: CONTRACT_ADDRESSES.profileNFT as Address,
       abi: ProfileNFTABI,
-      functionName: 'balanceOf',
+      functionName: 'hasProfile',
       args: [address],
-    }) as bigint;
+    }) as boolean;
 
-    return balance > 0n;
+    return has;
   } catch (error) {
-    console.error('Failed to check profile NFT:', error);
+    console.error('Failed to check profile:', error);
     return false;
   }
 }
 
 /**
- * Get user's profile stats from blockchain
- * @param address - User wallet address
- * @returns Profile stats or null if no profile exists
+ * Get user's profile data from blockchain
  */
-export async function getProfileStats(address: Address): Promise<ProfileStats | null> {
+export async function getProfileData(address: Address): Promise<ProfileData | null> {
   try {
     const client = getPublicClient();
-    const stats = await client.readContract({
+    const data = await client.readContract({
       address: CONTRACT_ADDRESSES.profileNFT as Address,
       abi: ProfileNFTABI,
-      functionName: 'getStats',
+      functionName: 'getProfile',
       args: [address],
     }) as any;
 
     return {
-      level: stats.level,
-      xp: stats.xp,
-      totalDistance: stats.totalDistance,
-      tier: stats.tier,
+      xp: data.xp,
+      level: Number(data.level),
+      runCount: Number(data.runCount),
+      achievementCount: Number(data.achievementCount),
+      totalDistanceMeters: data.totalDistanceMeters,
+      longestStreakDays: Number(data.longestStreakDays),
+      lastUpdated: data.lastUpdated,
+      exists: data.exists,
     };
   } catch (error) {
-    console.error('Failed to get profile stats:', error);
+    console.error('Failed to get profile data:', error);
     return null;
   }
 }
 
 /**
+ * Get user's profile tier from blockchain
+ */
+export async function getProfileTier(address: Address): Promise<number> {
+  try {
+    const client = getPublicClient();
+    const tier = await client.readContract({
+      address: CONTRACT_ADDRESSES.profileNFT as Address,
+      abi: ProfileNFTABI,
+      functionName: 'getProfileTier',
+      args: [address],
+    }) as number;
+
+    return Number(tier);
+  } catch (error) {
+    console.error('Failed to get profile tier:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get user's profile token ID
+ */
+export async function getProfileTokenId(address: Address): Promise<bigint> {
+  try {
+    const client = getPublicClient();
+    const tokenId = await client.readContract({
+      address: CONTRACT_ADDRESSES.profileNFT as Address,
+      abi: ProfileNFTABI,
+      functionName: 'getTokenId',
+      args: [address],
+    }) as bigint;
+
+    return tokenId;
+  } catch (error) {
+    console.error('Failed to get profile token ID:', error);
+    return 0n;
+  }
+}
+
+/**
  * Get Profile NFT token URI (metadata)
- * @param tokenId - Token ID
- * @returns Token URI or null
  */
 export async function getProfileTokenURI(tokenId: bigint): Promise<string | null> {
   try {
@@ -83,7 +125,7 @@ export async function getProfileTokenURI(tokenId: bigint): Promise<string | null
     const uri = await client.readContract({
       address: CONTRACT_ADDRESSES.profileNFT as Address,
       abi: ProfileNFTABI,
-      functionName: 'tokenURI',
+      functionName: 'uri',
       args: [tokenId],
     }) as string;
 
@@ -96,8 +138,6 @@ export async function getProfileTokenURI(tokenId: bigint): Promise<string | null
 
 /**
  * Calculate tier from level (client-side)
- * @param level - User level
- * @returns Tier (1-5)
  */
 export function calculateTierFromLevel(level: number): number {
   if (level >= 9) return 5; // Diamond
@@ -109,21 +149,17 @@ export function calculateTierFromLevel(level: number): number {
 
 /**
  * Calculate XP needed for next level
- * @param currentLevel - Current level
- * @returns XP needed to reach next level
  */
-export function xpNeededForNextLevel(currentLevel: number): number {
-  // XP per level is 100 (from constants)
+export function xpNeededForNextLevel(): number {
   return 100;
 }
 
 /**
  * Calculate progress percentage to next level
- * @param currentXP - Current XP
- * @param currentLevel - Current level
- * @returns Progress percentage (0-100)
  */
-export function calculateLevelProgress(currentXP: number, currentLevel: number): number {
+export function calculateLevelProgress(currentXP: number): number {
   const xpInCurrentLevel = currentXP % 100;
   return (xpInCurrentLevel / 100) * 100;
 }
+
+export { ProfileNFTABI };
