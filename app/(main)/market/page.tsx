@@ -3,55 +3,43 @@
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { RARITY_COLORS, CATEGORY_LABELS } from "@/lib/constants";
-import type { MarketListing, CosmeticItem } from "@/lib/types";
-import { getListings } from "@/lib/api";
+import type { CosmeticItem } from "@/lib/types";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge, { RarityBadge, TierBadge } from "@/components/ui/Badge";
+import { RarityBadge } from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { ShoppingBag, Package, Sparkles, Wallet } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBalance } from "@/hooks/useBalance";
 import { useToast } from "@/components/ui/Toast";
+import { getProfile } from "@/lib/api";
 
 type MarketTab = "listings" | "collection";
 
 export default function MarketPage() {
   const [activeTab, setActiveTab] = useState<MarketTab>("listings");
-  const [selectedListing, setSelectedListing] = useState<MarketListing | null>(
-    null,
-  );
   const [selectedItem, setSelectedItem] = useState<CosmeticItem | null>(null);
-  const [listings, setListings] = useState<MarketListing[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const { walletAddress } = useAuth();
   const { balance, isLoading } = useBalance(walletAddress);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
 
+  // Check if user has a profile NFT
   useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        setLoading(true);
-        const data = await getListings();
-        setListings(data || []);
-      } catch (err) {
-        console.error("Failed to fetch listings:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!walletAddress) return;
+    getProfile(walletAddress)
+      .then((p) => setHasProfile(!!p?.profileTokenId))
+      .catch(() => setHasProfile(false));
+  }, [walletAddress]);
 
-    fetchListings();
-  }, []);
-
-  // Collection: currently empty until contract reads are implemented
+  // SC integration pending — Marketplace + CosmeticNFT contract reads
   const collection: CosmeticItem[] = [];
 
   return (
     <div className="page-enter">
-      <Header title="Market" subtitle="Trade cosmetic NFTs" />
+      <Header title="Market" subtitle="Customize your runner" />
 
       {/* Wallet Balance */}
       <div className="mx-5 mt-2 mb-3">
@@ -91,7 +79,7 @@ export default function MarketPage() {
         </Card>
       </div>
 
-      {/* Banner — soft, premium feel */}
+      {/* Banner */}
       <div className="mx-5 mb-4 bg-gradient-to-r from-primary/80 to-primary-light/70 rounded-2xl p-4 flex items-center gap-3">
         <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
           <Sparkles size={22} className="text-white/90" />
@@ -102,14 +90,14 @@ export default function MarketPage() {
         </div>
       </div>
 
-      {/* Tabs — iOS segmented control style */}
+      {/* Tabs */}
       <div className="px-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5 mb-4">
         {(["listings", "collection"] as MarketTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+              "flex-1 py-2 min-h-[44px] rounded-lg text-sm font-medium transition-all duration-200",
               activeTab === tab
                 ? "bg-surface text-text-primary shadow-card"
                 : "text-text-tertiary",
@@ -123,32 +111,11 @@ export default function MarketPage() {
       {/* Content */}
       <div className="px-5 pb-6">
         {activeTab === "listings" ? (
-          loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p className="text-sm text-text-tertiary">
-                  Loading marketplace...
-                </p>
-              </div>
-            </div>
-          ) : listings.length === 0 ? (
-            <EmptyState
-              icon={<ShoppingBag size={36} />}
-              title="No listings yet"
-              description="Be the first to list an item"
-            />
-          ) : (
-            <div className="space-y-3">
-              {listings.map((listing) => (
-                <ListingCard
-                  key={listing.listingId}
-                  listing={listing}
-                  onPress={() => setSelectedListing(listing)}
-                />
-              ))}
-            </div>
-          )
+          <EmptyState
+            icon={<ShoppingBag size={36} />}
+            title="No listings yet"
+            description="Marketplace reads from smart contract — coming soon"
+          />
         ) : collection.length === 0 ? (
           <EmptyState
             icon={<Package size={36} />}
@@ -168,20 +135,6 @@ export default function MarketPage() {
         )}
       </div>
 
-      {/* Listing Detail Modal */}
-      <Modal
-        open={!!selectedListing}
-        onClose={() => setSelectedListing(null)}
-        title="Listing Details"
-      >
-        {selectedListing && (
-          <ListingDetail
-            listing={selectedListing}
-            onClose={() => setSelectedListing(null)}
-          />
-        )}
-      </Modal>
-
       {/* Item Detail Modal */}
       <Modal
         open={!!selectedItem}
@@ -192,51 +145,11 @@ export default function MarketPage() {
           <ItemDetail
             item={selectedItem}
             onClose={() => setSelectedItem(null)}
+            hasProfile={hasProfile}
           />
         )}
       </Modal>
     </div>
-  );
-}
-
-function ListingCard({
-  listing,
-  onPress,
-}: {
-  listing: MarketListing;
-  onPress: () => void;
-}) {
-  return (
-    <Card hoverable onClick={onPress}>
-      <div className="flex items-center gap-3">
-        <div
-          className="w-13 h-13 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}10` }}
-        >
-          <Package
-            size={22}
-            style={{ color: RARITY_COLORS[listing.item.rarity], opacity: 0.7 }}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="text-sm font-medium text-text-primary truncate">
-              {listing.item.name}
-            </p>
-            <RarityBadge rarity={listing.item.rarity} />
-          </div>
-          <p className="text-xs text-text-tertiary">
-            {CATEGORY_LABELS[listing.item.category]}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-sm font-semibold text-text-primary">
-            {listing.pricePerUnit}
-          </p>
-          <p className="text-[10px] text-text-tertiary">ETH</p>
-        </div>
-      </div>
-    </Card>
   );
 }
 
@@ -266,77 +179,32 @@ function CollectionCard({
   );
 }
 
-function ListingDetail({
-  listing,
-  onClose,
-}: {
-  listing: MarketListing;
-  onClose: () => void;
-}) {
-  const { info } = useToast();
-  const handleBuy = () => {
-    info("Purchase feature coming soon!");
-    onClose();
-  };
-
-  return (
-    <div className="space-y-5">
-      <div
-        className="w-full aspect-square max-h-48 rounded-2xl flex items-center justify-center mx-auto"
-        style={{ backgroundColor: `${RARITY_COLORS[listing.item.rarity]}08` }}
-      >
-        <Package
-          size={56}
-          style={{ color: RARITY_COLORS[listing.item.rarity], opacity: 0.5 }}
-        />
-      </div>
-
-      <div className="text-center">
-        <h3 className="text-lg font-semibold text-text-primary">
-          {listing.item.name}
-        </h3>
-        <div className="flex items-center justify-center gap-2 mt-1.5">
-          <RarityBadge rarity={listing.item.rarity} />
-          <Badge>{CATEGORY_LABELS[listing.item.category]}</Badge>
-        </div>
-      </div>
-
-      <div className="bg-surface-tertiary/60 rounded-2xl p-5 text-center">
-        <p className="text-xs text-text-tertiary">Price</p>
-        <p className="text-2xl font-semibold text-text-primary mt-0.5">
-          {listing.pricePerUnit} ETH
-        </p>
-        <p className="text-xs text-text-tertiary mt-1.5">
-          Seller: {listing.seller}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between px-1">
-        <span className="text-xs text-text-tertiary">Min Tier Required</span>
-        <TierBadge tier={listing.item.minTierRequired} />
-      </div>
-
-      <Button
-        variant="primary"
-        size="lg"
-        className="w-full rounded-2xl"
-        onClick={handleBuy}
-      >
-        Buy for {listing.pricePerUnit} ETH
-      </Button>
-    </div>
-  );
-}
-
 function ItemDetail({
   item,
   onClose,
+  hasProfile,
 }: {
   item: CosmeticItem;
   onClose: () => void;
+  hasProfile: boolean | null;
 }) {
-  const { info } = useToast();
+  const { info, warning } = useToast();
+
+  const handleEquip = () => {
+    if (hasProfile === false) {
+      warning("Set up your profile first to equip items. Go to Profile to get started.");
+      onClose();
+      return;
+    }
+    info("Equip feature coming soon!");
+  };
+
   const handleSell = () => {
+    if (hasProfile === false) {
+      warning("Set up your profile first to sell items. Go to Profile to get started.");
+      onClose();
+      return;
+    }
     info("Sell feature coming soon!");
     onClose();
   };
@@ -356,19 +224,23 @@ function ItemDetail({
       <div className="text-center">
         <RarityBadge rarity={item.rarity} />
         <p className="text-xs text-text-tertiary mt-2">
-          {CATEGORY_LABELS[item.category]} · Supply: {item.currentSupply}/
-          {item.maxSupply}
+          {CATEGORY_LABELS[item.category]} · Max Supply: {item.maxSupply}
         </p>
       </div>
 
       <div className="flex gap-3">
-        <Button variant="secondary" size="lg" className="flex-1 rounded-2xl">
+        <Button
+          variant="secondary"
+          size="lg"
+          className="flex-1 rounded-2xl min-h-[48px]"
+          onClick={handleEquip}
+        >
           Equip
         </Button>
         <Button
           variant="outline"
           size="lg"
-          className="flex-1 rounded-2xl"
+          className="flex-1 rounded-2xl min-h-[48px]"
           onClick={handleSell}
         >
           Sell

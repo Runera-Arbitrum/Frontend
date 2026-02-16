@@ -8,13 +8,14 @@ import { createWalletClient, custom, type Address } from "viem";
 import { arbitrumSepolia } from "viem/chains";
 import { CONTRACT_ADDRESSES } from "@/lib/constants";
 import ProfileNFTABI from "@/lib/contracts/abis/RuneraProfileNFT.json";
-import type { UserProfile, Run, Achievement, CosmeticItem } from "@/lib/types";
-import { truncateAddress, formatDistance } from "@/lib/utils";
+import type { UserProfile, Run } from "@/lib/types";
+import { truncateAddress, formatDistance, formatDuration, formatPace, timeAgo } from "@/lib/utils";
+import { MOCK_ACTIVITY_FEED } from "@/lib/mock-data";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
-import { XP_PER_LEVEL, RARITY_COLORS } from "@/lib/constants";
+import { XP_PER_LEVEL } from "@/lib/constants";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge, { TierBadge, RarityBadge } from "@/components/ui/Badge";
+import Badge, { TierBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
@@ -35,9 +36,10 @@ import {
   Target,
   Zap,
   Loader2,
+  MapPin,
 } from "lucide-react";
 
-type ProfileTab = "stats" | "achievements" | "equipped";
+type ProfileTab = "stats" | "feed" | "achievements" | "equipped";
 
 // Generate monthly calendar for streak visualization from real runs
 const getMonthlyStreakData = (runs: Run[]) => {
@@ -84,7 +86,7 @@ const getMonthlyStreakData = (runs: Run[]) => {
 };
 
 export default function ProfilePage() {
-  const { walletAddress, activeWallet, logout } = useAuth();
+  const { walletAddress, activeWallet, walletReady, logout } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
   const [copied, setCopied] = useState(false);
@@ -242,12 +244,169 @@ export default function ProfilePage() {
     }
   };
 
+  const hasProfile = !!(user?.profileTokenId);
+
   if (loading) {
     return (
       <div className="page-enter flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
           <p className="text-sm text-text-tertiary">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Onboarding: wallet not ready or no profile NFT
+  if (!hasProfile) {
+    return (
+      <div className="page-enter">
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
+          <div className="relative px-5 pt-14 pb-8">
+            <div className="flex flex-col items-center">
+              <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center mb-4 ring-4 ring-white/20 shadow-lg">
+                <User size={36} className="text-primary" />
+              </div>
+              <p className="text-xl font-bold text-white">Welcome to Runera</p>
+              <p className="text-sm text-white/70 mt-1">
+                Set up your profile to start running
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 -mt-4 space-y-3">
+          {/* Step 1: Wallet */}
+          <Card className="!bg-white !border-border-light">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                walletAddress
+                  ? "bg-success/10 text-success"
+                  : "bg-primary/10 text-primary animate-pulse",
+              )}>
+                {walletAddress ? <Check size={16} /> : "1"}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text-primary">
+                  Create Wallet
+                </p>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  {walletAddress
+                    ? `Wallet ready: ${truncateAddress(walletAddress)}`
+                    : "Creating your wallet... please wait"}
+                </p>
+              </div>
+              {walletAddress && (
+                <button
+                  onClick={copyAddress}
+                  className="text-xs text-primary font-medium mt-0.5"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              )}
+            </div>
+          </Card>
+
+          {/* Step 2: Faucet */}
+          <Card className="!bg-white !border-border-light">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                !walletAddress
+                  ? "bg-surface-tertiary text-text-tertiary"
+                  : "bg-info/10 text-info",
+              )}>
+                2
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text-primary">
+                  Get Testnet ETH
+                </p>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  Get free testnet tokens to create your profile
+                </p>
+                {walletAddress && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2.5"
+                    onClick={handleFaucet}
+                    disabled={faucetLoading || !walletAddress}
+                    icon={faucetLoading
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <Droplets size={14} />
+                    }
+                  >
+                    {faucetLoading ? "Requesting..." : "Request Faucet"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Step 3: Mint Profile */}
+          <Card className="!bg-white !border-border-light">
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                !walletReady
+                  ? "bg-surface-tertiary text-text-tertiary"
+                  : "bg-primary/10 text-primary",
+              )}>
+                3
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-text-primary">
+                  Create Your Profile
+                </p>
+                <p className="text-xs text-text-tertiary mt-0.5">
+                  Your runner identity to record runs and join events
+                </p>
+                {walletReady && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="mt-2.5"
+                    onClick={handleMintProfile}
+                    disabled={mintLoading}
+                    icon={mintLoading
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <Shield size={14} />
+                    }
+                  >
+                    {mintLoading ? "Creating..." : "Create Profile"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Info box */}
+          <div className="bg-primary-50/60 rounded-2xl p-4 mt-2">
+            <p className="text-xs text-primary font-medium mb-1">
+              Why do I need a profile?
+            </p>
+            <p className="text-xs text-text-tertiary leading-relaxed">
+              Your profile is your runner identity. It tracks your running
+              stats, XP, and tier securely. Without it, you cannot
+              record runs, join events, or buy cosmetics.
+            </p>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <div className="px-5 mt-8 pb-8">
+          <Button
+            variant="ghost"
+            size="md"
+            className="w-full text-error/70"
+            icon={<LogOut size={15} />}
+            onClick={logout}
+          >
+            Disconnect
+          </Button>
         </div>
       </div>
     );
@@ -261,7 +420,7 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
-        <div className="relative px-5 pt-12 pb-6">
+        <div className="relative px-5 pt-12 pb-14">
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-white/90 flex items-center justify-center mb-3 ring-4 ring-white/20 shadow-lg">
               <User size={40} className="text-primary" />
@@ -288,35 +447,37 @@ export default function ProfilePage() {
               )}
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* XP Bar */}
-          <div className="mt-5 bg-white/95 backdrop-blur-sm border border-white/40 rounded-2xl p-4 shadow-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-tertiary font-medium">
-                XP Progress
-              </span>
-              <span className="text-xs text-text-tertiary">
-                {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL}
-              </span>
-            </div>
-            <div className="w-full h-2.5 rounded-full bg-primary-50 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700 ease-out shadow-sm"
-                style={{ width: `${displayUser.exp % XP_PER_LEVEL}%` }}
-              />
-            </div>
-            <p className="text-xs text-text-tertiary mt-2">
-              Next:{" "}
-              {
-                TIER_NAMES[
-                  Math.min(
-                    ((displayUser.tier as number) || 1) + 1,
-                    5,
-                  ) as TierLevel
-                ]
-              }
-            </p>
+      {/* XP Bar — floating below banner */}
+      <div className="px-5 -mt-10 relative z-10">
+        <div className="bg-white border border-border-light/50 rounded-2xl p-4 shadow-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-text-tertiary font-medium">
+              XP Progress
+            </span>
+            <span className="text-xs text-text-tertiary">
+              {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL}
+            </span>
           </div>
+          <div className="w-full h-2.5 rounded-full bg-primary-50 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700 ease-out shadow-sm"
+              style={{ width: `${displayUser.exp % XP_PER_LEVEL}%` }}
+            />
+          </div>
+          <p className="text-xs text-text-tertiary mt-2">
+            Next:{" "}
+            {
+              TIER_NAMES[
+                Math.min(
+                  ((displayUser.tier as number) || 1) + 1,
+                  5,
+                ) as TierLevel
+              ]
+            }
+          </p>
         </div>
       </div>
 
@@ -351,7 +512,7 @@ export default function ProfilePage() {
             <Shield size={17} className="text-primary/60 mx-auto mb-1.5" />
           )}
           <p className="text-xs font-medium text-text-secondary">
-            Mint Profile
+            Create Profile
           </p>
         </Card>
         <Card hoverable className="flex-1 text-center py-3.5">
@@ -365,7 +526,7 @@ export default function ProfilePage() {
 
       {/* Tab Navigation — iOS segmented control */}
       <div className="mt-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5">
-        {(["stats", "achievements", "equipped"] as ProfileTab[]).map((tab) => (
+        {(["stats", "feed", "achievements", "equipped"] as ProfileTab[]).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -541,6 +702,71 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {activeTab === "feed" && (
+          <div className="space-y-4">
+            {MOCK_ACTIVITY_FEED.map((activity) => (
+              <div
+                key={activity.id}
+                className="rounded-2xl bg-surface border border-border-light/70 shadow-card overflow-hidden"
+              >
+                {/* Header: avatar + name + time + location */}
+                <div className="px-4 pt-3.5 pb-2 flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold",
+                      activity.user.avatarColor,
+                    )}
+                  >
+                    {activity.user.initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-text-primary">
+                      {activity.user.name}
+                    </p>
+                    <p className="text-[11px] text-text-tertiary">
+                      {timeAgo(activity.timestamp)}
+                      {activity.location && ` · ${activity.location}`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Map placeholder */}
+                <div className="mx-4 h-32 rounded-xl bg-gradient-to-br from-primary/5 to-blue-500/10 flex items-center justify-center">
+                  <MapPin size={24} className="text-primary/30" />
+                </div>
+
+                {/* Stats row */}
+                <div className="px-4 py-3 flex items-center divide-x divide-border-light/50">
+                  <div className="flex-1 text-center">
+                    <p className="text-sm font-bold text-text-primary">
+                      {formatDistance(activity.distanceMeters)}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
+                      Distance
+                    </p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-sm font-bold text-text-primary">
+                      {formatDuration(activity.durationSeconds)}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
+                      Duration
+                    </p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-sm font-bold text-text-primary">
+                      {formatPace(activity.avgPaceSeconds)}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
+                      Pace
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {activeTab === "achievements" && (
           <EmptyState
             icon={<Award size={36} />}
@@ -567,7 +793,7 @@ export default function ProfilePage() {
           icon={<LogOut size={15} />}
           onClick={logout}
         >
-          Disconnect Wallet
+          Sign Out
         </Button>
       </div>
     </div>

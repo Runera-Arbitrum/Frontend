@@ -13,8 +13,8 @@ import {
 } from "@/lib/utils";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
-import Card, { CardHeader, CardTitle } from "@/components/ui/Card";
 import { TierBadge, StatusBadge } from "@/components/ui/Badge";
+import Modal from "@/components/ui/Modal";
 import Image from "next/image";
 import {
   MapPin,
@@ -24,7 +24,6 @@ import {
   ChevronRight,
   Zap,
   Check,
-  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +37,6 @@ const getStreakCalendar = (runs: Run[]) => {
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split("T")[0];
 
-    // Check if user had a verified run on this day
     const hasRun = runs.some((run) => {
       const runDate = new Date(run.startTime).toISOString().split("T")[0];
       return runDate === dateStr && run.status === "VERIFIED";
@@ -52,28 +50,6 @@ const getStreakCalendar = (runs: Run[]) => {
   }
 
   return calendar;
-};
-
-// Calculate weekly distances from run data
-const getWeeklyDistances = (runs: Run[]) => {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const weeklyData = days.map((day) => ({ day, meters: 0 }));
-
-  runs.forEach((run) => {
-    if (run.status !== "VERIFIED") return;
-    const runDate = new Date(run.startTime);
-    if (runDate >= startOfWeek) {
-      const dayIndex = runDate.getDay();
-      weeklyData[dayIndex].meters += run.distanceMeters;
-    }
-  });
-
-  return weeklyData;
 };
 
 // Calculate current streak from runs
@@ -116,6 +92,7 @@ export default function HomePage() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showStreakModal, setShowStreakModal] = useState(false);
 
   useEffect(() => {
     if (!walletAddress) {
@@ -150,8 +127,6 @@ export default function HomePage() {
   }, [walletAddress]);
 
   // Computed values
-  const weekly = getWeeklyDistances(runs);
-  const maxWeekly = Math.max(...weekly.map((d) => d.meters), 1);
   const levelProgress = user ? calcLevelProgress(user.exp) : 0;
   const streakCalendar = getStreakCalendar(runs);
   const currentStreak = calculateCurrentStreak(runs);
@@ -181,8 +156,8 @@ export default function HomePage() {
   return (
     <div className="page-enter">
       {/* Hero Section */}
-      <div className="bg-gentle-gradient px-5 pt-12 pb-6">
-        <div className="flex items-center justify-between mb-5">
+      <div className="bg-gentle-gradient px-5 pt-12 pb-5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
               src="/runera biru.png"
@@ -200,256 +175,244 @@ export default function HomePage() {
           </div>
           <TierBadge tier={displayUser.tier as TierLevel} />
         </div>
-
-        {/* Level Progress */}
-        <Card className="!border-primary-100/50 !bg-primary-50/40">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-text-secondary text-xs font-medium">
-              Level {displayUser.level}
-            </span>
-            <span className="text-text-tertiary text-xs">
-              {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL} XP
-            </span>
-          </div>
-          <div className="w-full h-2 rounded-full bg-primary-100/60 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-primary/70 transition-all duration-700 ease-out"
-              style={{ width: `${levelProgress}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between mt-2.5">
-            <span className="text-text-primary text-xl font-semibold">
-              {displayUser.exp} XP
-            </span>
-            <span className="text-text-tertiary text-xs">
-              Next:{" "}
-              {
-                TIER_NAMES[
-                  Math.min((displayUser.tier as number) + 1, 5) as TierLevel
-                ]
-              }
-            </span>
-          </div>
-        </Card>
       </div>
 
-      {/* 🔥 STREAK MOTIVATION SECTION - PROMINENT */}
-      <div className="px-5 mt-5">
-        <Card className="!bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-yellow-500/10 !border-orange-500/20 overflow-hidden relative">
-          {/* Decorative gradient overlay */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-3xl" />
+      {/* Bento Grid */}
+      <div className="px-5 mt-5 mb-6">
+        <div className="grid grid-cols-2 gap-3">
 
-          <div className="relative">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Flame size={20} className="text-orange-500" />
-                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">
-                    Running Streak
-                  </p>
+          {/* Streak — tall card, spans 2 rows */}
+          <button
+            onClick={() => setShowStreakModal(true)}
+            className="text-left row-span-2"
+          >
+            <div className="h-full rounded-3xl bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-yellow-500/10 border border-orange-500/15 p-4 flex flex-col justify-between shadow-card relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-2xl" />
+              <div className="relative">
+                <div className="flame-glow w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-yellow-500/15 flex items-center justify-center mb-3">
+                  <Flame size={20} className="text-orange-500 flame-animated" fill="currentColor" strokeWidth={1.5} />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-5xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
-                    {currentStreak}
-                  </p>
-                  <p className="text-lg font-semibold text-text-secondary mb-1">
-                    days
-                  </p>
-                </div>
-                <p className="text-xs text-text-tertiary mt-1">
-                  Longest: {displayUser.longestStreakDays} days 🏆
+                <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">
+                  Current Streak
                 </p>
               </div>
-
-              <div className="text-center bg-white/50 rounded-2xl px-3 py-2 backdrop-blur-sm">
-                <Calendar size={16} className="text-orange-500 mx-auto mb-1" />
-                <p className="text-[10px] text-text-tertiary font-medium">
-                  This Month
+              <div className="relative">
+                <p className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                  {currentStreak}
                 </p>
+                <p className="text-xs text-text-tertiary mt-0.5">days</p>
               </div>
             </div>
+          </button>
 
-            {/* Visual Streak Calendar - Last 28 days */}
-            <div>
-              <p className="text-[11px] text-text-tertiary font-medium mb-2 uppercase tracking-wide">
-                Last 4 Weeks
-              </p>
-              <div className="grid grid-cols-7 gap-1.5">
-                {streakCalendar.map((day, idx) => (
+          {/* Total Distance */}
+          <div className="rounded-3xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/15 p-4 shadow-card">
+            <MapPin size={18} className="text-blue-500 mb-2" />
+            <p className="text-2xl font-bold text-text-primary">
+              {formatDistance(displayUser.totalDistanceMeters)}
+            </p>
+            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
+              Total Distance
+            </p>
+          </div>
+
+          {/* Verified Runs */}
+          <div className="rounded-3xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/15 p-4 shadow-card">
+            <Zap size={18} className="text-green-500 mb-2" />
+            <p className="text-2xl font-bold text-text-primary">
+              {displayUser.verifiedRunCount}
+            </p>
+            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
+              Verified Runs
+            </p>
+          </div>
+
+          {/* Level / XP — full width */}
+          <div className="col-span-2 rounded-3xl bg-gradient-to-r from-primary/8 via-primary-light/6 to-blue-400/8 border border-primary/12 p-4 shadow-card">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <TierBadge tier={displayUser.tier as TierLevel} />
+                <span className="text-sm font-semibold text-text-primary">
+                  Level {displayUser.level}
+                </span>
+              </div>
+              <span className="text-xs text-text-tertiary">
+                {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL} XP
+              </span>
+            </div>
+            <div className="w-full h-2.5 rounded-full bg-primary-100/60 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700 ease-out"
+                style={{ width: `${levelProgress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Collectibles */}
+          <div className="rounded-3xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/15 p-4 shadow-card">
+            <Trophy size={18} className="text-purple-500 mb-2" />
+            <p className="text-2xl font-bold text-text-primary">
+              {user?.profileTokenId ? "1" : "0"}
+            </p>
+            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
+              Collectibles
+            </p>
+          </div>
+
+          {/* Best Streak */}
+          <div className="rounded-3xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/15 p-4 shadow-card">
+            <Flame size={18} className="text-yellow-500 mb-2" />
+            <p className="text-2xl font-bold text-text-primary">
+              {displayUser.longestStreakDays}
+            </p>
+            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
+              Best Streak
+            </p>
+          </div>
+
+          {/* Latest Run — full width */}
+          <div className="col-span-2 rounded-3xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
+            <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
+              <span className="text-xs font-semibold text-text-primary">Latest Run</span>
+              <button className="text-[11px] text-primary font-medium flex items-center gap-0.5">
+                All runs <ChevronRight size={12} />
+              </button>
+            </div>
+            {runs.length === 0 ? (
+              <div className="px-4 pb-4 text-center">
+                <p className="text-xs text-text-tertiary py-4">No runs yet. Start running!</p>
+              </div>
+            ) : (
+              <div className="px-4 pb-3.5">
+                {runs.slice(0, 2).map((run) => (
                   <div
-                    key={idx}
-                    className={cn(
-                      "aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all",
-                      day.hasRun
-                        ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm"
-                        : day.isToday
-                          ? "bg-surface-tertiary border-2 border-primary text-text-secondary"
-                          : "bg-surface-tertiary text-text-tertiary/40",
-                    )}
+                    key={run.id}
+                    className="flex items-center justify-between py-2.5 border-t border-border-light/50 first:border-t-0"
                   >
-                    {day.hasRun ? (
-                      <Check size={12} strokeWidth={3} />
-                    ) : (
-                      <span className="text-[9px]">{day.date}</span>
-                    )}
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                        <TrendingUp size={15} className="text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-text-primary">
+                          {formatDistance(run.distanceMeters)}
+                        </p>
+                        <p className="text-[11px] text-text-tertiary">
+                          {formatDuration(run.durationSeconds)} · {formatPace(run.avgPaceSeconds)}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge status={run.status} />
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border-light/30">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-gradient-to-br from-orange-500 to-orange-600" />
-                  <span className="text-[10px] text-text-tertiary">
-                    Completed
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-surface-tertiary" />
-                  <span className="text-[10px] text-text-tertiary">Missed</span>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        </Card>
-      </div>
 
-      {/* Quick Stats Grid */}
-      <div className="px-5 mt-5">
-        <div className="grid grid-cols-3 gap-2.5">
-          <StatCard
-            icon={<MapPin size={18} className="text-blue-500" />}
-            value={formatDistance(displayUser.totalDistanceMeters)}
-            label="Total Distance"
-            gradient="from-blue-500/10 to-blue-600/5"
-          />
-          <StatCard
-            icon={<Zap size={18} className="text-yellow-500" />}
-            value={String(displayUser.verifiedRunCount)}
-            label="Verified Runs"
-            gradient="from-yellow-500/10 to-yellow-600/5"
-          />
-          <StatCard
-            icon={<Trophy size={18} className="text-purple-500" />}
-            value={user?.profileTokenId ? "1" : "0"}
-            label="NFTs Owned"
-            gradient="from-purple-500/10 to-purple-600/5"
-          />
         </div>
       </div>
 
-      {/* Weekly Activity Chart */}
-      <div className="px-5 mt-5">
-        <Card>
-          <CardHeader>
-            <CardTitle>This Week</CardTitle>
-            <span className="text-xs text-text-tertiary">
-              {formatDistance(weekly.reduce((s, d) => s + d.meters, 0))} total
-            </span>
-          </CardHeader>
-          <div className="flex items-end justify-between gap-1.5 h-24">
-            {weekly.map((day) => (
-              <div
-                key={day.day}
-                className="flex flex-col items-center flex-1 gap-1.5"
-              >
-                <div className="w-full flex items-end justify-center h-16">
-                  <div
-                    className={cn(
-                      "w-full max-w-[22px] rounded-lg transition-all duration-500 ease-out",
-                      day.meters > 0 && "shadow-sm",
-                    )}
-                    style={{
-                      height: `${Math.max((day.meters / maxWeekly) * 100, 6)}%`,
-                      background:
-                        day.meters > 0
-                          ? "linear-gradient(135deg, var(--color-primary) 0%, #0060d4 100%)"
-                          : "var(--color-surface-tertiary)",
-                    }}
-                  />
+      {/* Streak Detail Modal */}
+      <Modal
+        open={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+        title="Your Streak"
+      >
+        <div className="space-y-5">
+          {/* Current vs Longest */}
+          <div className="flex items-center justify-center gap-6 py-2">
+            <div className="text-center">
+              <div className="flame-glow w-14 h-14 rounded-full bg-gradient-to-br from-orange-500/20 to-yellow-500/15 flex items-center justify-center mx-auto mb-2">
+                <Flame
+                  size={28}
+                  className="text-orange-500 flame-animated"
+                  fill="currentColor"
+                  strokeWidth={1.5}
+                />
+              </div>
+              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                {currentStreak}
+              </p>
+              <p className="text-xs text-text-tertiary mt-0.5">Current</p>
+            </div>
+            <div className="w-px h-12 bg-border-light" />
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center mx-auto mb-2">
+                <Trophy size={24} className="text-yellow-500" />
+              </div>
+              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 bg-clip-text text-transparent">
+                {displayUser.longestStreakDays}
+              </p>
+              <p className="text-xs text-text-tertiary mt-0.5">Longest</p>
+            </div>
+          </div>
+
+          {/* 28-day calendar */}
+          <div>
+            <p className="text-[11px] text-text-tertiary font-medium mb-2 uppercase tracking-wide">
+              Last 4 Weeks
+            </p>
+            <div className="grid grid-cols-7 gap-1 mb-1.5">
+              {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
+                <div
+                  key={idx}
+                  className="text-center text-[10px] text-text-tertiary font-medium"
+                >
+                  {day}
                 </div>
-                <span
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {streakCalendar.map((day, idx) => (
+                <div
+                  key={idx}
                   className={cn(
-                    "text-[10px] font-medium",
-                    day.meters > 0 ? "text-primary" : "text-text-tertiary",
+                    "aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all",
+                    day.hasRun
+                      ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm"
+                      : day.isToday
+                        ? "bg-surface-tertiary border-2 border-primary text-text-secondary"
+                        : "bg-surface-tertiary text-text-tertiary/40",
                   )}
                 >
-                  {day.day}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Recent Runs */}
-      <div className="px-5 mt-5 mb-6">
-        <Card padding="none">
-          <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-            <CardTitle>Recent Runs</CardTitle>
-            <button className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
-              See all <ChevronRight size={14} />
-            </button>
-          </div>
-          <div className="divide-y divide-border-light/60">
-            {runs.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <p className="text-sm text-text-tertiary">
-                  No runs yet. Start running!
-                </p>
-              </div>
-            ) : (
-              runs.slice(0, 3).map((run) => (
-                <div
-                  key={run.id}
-                  className="px-4 py-3.5 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                      <TrendingUp size={17} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">
-                        {formatDistance(run.distanceMeters)}
-                      </p>
-                      <p className="text-xs text-text-tertiary">
-                        {formatDuration(run.durationSeconds)} ·{" "}
-                        {formatPace(run.avgPaceSeconds)}
-                      </p>
-                    </div>
-                  </div>
-                  <StatusBadge status={run.status} />
+                  {day.hasRun ? (
+                    <Check size={12} strokeWidth={3} />
+                  ) : (
+                    <span className="text-[9px]">{day.date}</span>
+                  )}
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border-light/30">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-gradient-to-br from-orange-500 to-orange-600" />
+                <span className="text-[10px] text-text-tertiary">Completed</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded bg-surface-tertiary" />
+                <span className="text-[10px] text-text-tertiary">Missed</span>
+              </div>
+            </div>
           </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
 
-function StatCard({
-  icon,
-  value,
-  label,
-  gradient,
-}: {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  gradient: string;
-}) {
-  return (
-    <Card
-      className={cn(
-        "flex flex-col items-center py-4 text-center !border-border-light/50 !bg-gradient-to-br",
-        gradient,
-      )}
-    >
-      <div className="mb-2">{icon}</div>
-      <span className="text-base font-bold text-text-primary">{value}</span>
-      <span className="text-[10px] text-text-tertiary mt-0.5 leading-tight">
-        {label}
-      </span>
-    </Card>
+          {/* Weekly summary */}
+          <div className="bg-surface-tertiary/50 rounded-2xl p-4">
+            <p className="text-xs font-medium text-text-secondary mb-2">This Week</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-text-primary font-semibold">
+                {streakCalendar.slice(-7).filter((d) => d.hasRun).length} / 7 days
+              </p>
+              <p className="text-xs text-text-tertiary">
+                {streakCalendar.slice(-7).filter((d) => d.hasRun).length >= 5
+                  ? "Amazing week!"
+                  : streakCalendar.slice(-7).filter((d) => d.hasRun).length >= 3
+                    ? "Good progress!"
+                    : "Keep going!"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 }

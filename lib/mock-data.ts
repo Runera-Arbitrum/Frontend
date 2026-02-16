@@ -8,7 +8,6 @@ import type {
   Run,
   RunEvent,
   CosmeticItem,
-  MarketListing,
   Achievement,
 } from './types';
 
@@ -138,9 +137,8 @@ export const MOCK_COSMETICS: CosmeticItem[] = [
     name: 'Starter Kicks',
     category: 'SHOES',
     rarity: 'COMMON',
-    imageUrl: '/cosmetics/shoes-starter.png',
+    ipfsHash: '',
     maxSupply: 1000,
-    currentSupply: 450,
     minTierRequired: 1,
   },
   {
@@ -148,83 +146,26 @@ export const MOCK_COSMETICS: CosmeticItem[] = [
     name: 'Neon Runner',
     category: 'SHOES',
     rarity: 'RARE',
-    imageUrl: '/cosmetics/shoes-neon.png',
+    ipfsHash: '',
     maxSupply: 200,
-    currentSupply: 89,
     minTierRequired: 2,
-  },
-  {
-    itemId: 3,
-    name: 'Storm Jacket',
-    category: 'OUTFIT',
-    rarity: 'EPIC',
-    imageUrl: '/cosmetics/outfit-storm.png',
-    maxSupply: 50,
-    currentSupply: 12,
-    minTierRequired: 3,
-  },
-  {
-    itemId: 4,
-    name: 'Golden Aura Frame',
-    category: 'FRAME',
-    rarity: 'LEGENDARY',
-    imageUrl: '/cosmetics/frame-golden.png',
-    maxSupply: 10,
-    currentSupply: 3,
-    minTierRequired: 4,
-  },
-  {
-    itemId: 5,
-    name: 'Mythic Headband',
-    category: 'ACCESSORY',
-    rarity: 'MYTHIC',
-    imageUrl: '/cosmetics/accessory-mythic.png',
-    maxSupply: 5,
-    currentSupply: 1,
-    minTierRequired: 5,
-  },
-];
-
-export const MOCK_LISTINGS: MarketListing[] = [
-  {
-    listingId: 1,
-    seller: '0xaaaa...1111',
-    item: MOCK_COSMETICS[0],
-    amount: 1,
-    pricePerUnit: '0.001',
-    status: 'ACTIVE',
-    createdAt: '2026-02-10T12:00:00Z',
-  },
-  {
-    listingId: 2,
-    seller: '0xbbbb...2222',
-    item: MOCK_COSMETICS[1],
-    amount: 1,
-    pricePerUnit: '0.005',
-    status: 'ACTIVE',
-    createdAt: '2026-02-11T08:00:00Z',
-  },
-  {
-    listingId: 3,
-    seller: '0xcccc...3333',
-    item: MOCK_COSMETICS[2],
-    amount: 1,
-    pricePerUnit: '0.02',
-    status: 'ACTIVE',
-    createdAt: '2026-02-11T14:00:00Z',
   },
 ];
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
   {
     id: 'ach-001',
+    userId: 'user-001',
     eventId: '0xgenesis10k',
-    eventName: 'Genesis 10K Challenge',
-    tier: 3,
+    participationId: 'ep-001',
     tokenId: 1,
+    tier: 3,
+    verifiedDistanceMeters: 10500,
+    metadataUri: null,
     metadataHash: '0xabcdef',
     mintedAt: '2026-02-08T10:00:00Z',
-    imageUrl: '/achievements/genesis-10k.png',
+    txHash: '0x123abc',
+    verifiedAt: '2026-02-08T09:55:00Z',
   },
 ];
 
@@ -237,4 +178,23 @@ export const MOCK_WEEKLY_DISTANCES = [
   { day: 'Fri', meters: 0 },
   { day: 'Sat', meters: 7500 },
   { day: 'Sun', meters: 0 },
+];
+
+// Activity Feed — dummy data (no DB table exists)
+export interface FeedActivity {
+  id: string;
+  user: { name: string; initial: string; avatarColor: string };
+  distanceMeters: number;
+  durationSeconds: number;
+  avgPaceSeconds: number;
+  timestamp: string;
+  location?: string;
+}
+
+export const MOCK_ACTIVITY_FEED: FeedActivity[] = [
+  { id: 'feed-001', user: { name: 'Alex R.', initial: 'A', avatarColor: 'bg-blue-500' }, distanceMeters: 5230, durationSeconds: 1620, avgPaceSeconds: 310, timestamp: '2026-02-17T07:30:00Z', location: 'Central Park' },
+  { id: 'feed-002', user: { name: 'Maya K.', initial: 'M', avatarColor: 'bg-purple-500' }, distanceMeters: 10450, durationSeconds: 3540, avgPaceSeconds: 339, timestamp: '2026-02-17T06:00:00Z', location: 'Riverside Trail' },
+  { id: 'feed-003', user: { name: 'Jordan T.', initial: 'J', avatarColor: 'bg-green-500' }, distanceMeters: 3100, durationSeconds: 1080, avgPaceSeconds: 348, timestamp: '2026-02-16T18:45:00Z', location: 'Harbor Loop' },
+  { id: 'feed-004', user: { name: 'Sam W.', initial: 'S', avatarColor: 'bg-orange-500' }, distanceMeters: 8200, durationSeconds: 2880, avgPaceSeconds: 351, timestamp: '2026-02-16T06:15:00Z' },
+  { id: 'feed-005', user: { name: 'Riley N.', initial: 'R', avatarColor: 'bg-pink-500' }, distanceMeters: 21097, durationSeconds: 7200, avgPaceSeconds: 341, timestamp: '2026-02-15T05:30:00Z', location: 'City Marathon Route' },
 ];

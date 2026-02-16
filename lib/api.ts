@@ -8,9 +8,6 @@ import type {
   UserProfile,
   Run,
   RunSubmitPayload,
-  RunEvent,
-  MarketListing,
-  Achievement,
 } from './types';
 
 // Use Next.js rewrite proxy to bypass CORS
@@ -69,17 +66,6 @@ export async function getProfile(walletAddress: string): Promise<UserProfile> {
   const res = await apiFetch<any>(`/profile/${walletAddress}`);
   // Handle both { profile: {...} } and direct object formats
   return res.profile || res;
-}
-
-export async function registerProfile(
-  walletAddress: string,
-  token?: string
-): Promise<{ success: boolean; txHash: string; tokenId: number; profileNFTAddress: string }> {
-  return apiFetch('/profile/gasless-register', {
-    method: 'POST',
-    body: JSON.stringify({ walletAddress }),
-    token,
-  });
 }
 
 // --- Runs ---
@@ -198,38 +184,6 @@ export async function claimAchievement(
     body: JSON.stringify({ walletAddress, eventId }),
     token,
   });
-}
-
-// --- Market ---
-// Note: Market functions call smart contracts directly, not backend API
-// These are handled via contract helpers in lib/contracts/
-
-export async function getListings(): Promise<MarketListing[]> {
-  // TODO: Implement using lib/contracts/ helpers
-  return [];
-}
-
-export async function buyListing(_listingId: number, _amount: number): Promise<{ txHash: string }> {
-  // TODO: Implement using Privy wallet + marketplace contract
-  throw new Error('Not implemented - use contract helpers');
-}
-
-export async function createListing(
-  _itemId: number,
-  _amount: number,
-  _pricePerUnit: string,
-): Promise<{ listingId: number }> {
-  // TODO: Implement using Privy wallet + marketplace contract
-  throw new Error('Not implemented - use contract helpers');
-}
-
-// --- Achievements ---
-// Note: Achievement ownership is queried from smart contract
-// Use lib/contracts/achievements.ts helpers
-
-export async function getAchievements(_walletAddress: string): Promise<Achievement[]> {
-  // TODO: Implement using lib/contracts/achievements helpers
-  return [];
 }
 
 // --- Faucet ---

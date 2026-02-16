@@ -89,7 +89,7 @@ export interface RunEvent {
 
 export type EventParticipationStatus = 'JOINED' | 'COMPLETED' | 'REJECTED';
 
-// --- Cosmetic / Market ---
+// --- Cosmetic / Market (SC-only: no DB table, read from CosmeticNFT + Marketplace contracts) ---
 export type CosmeticCategory = 'SHOES' | 'OUTFIT' | 'ACCESSORY' | 'FRAME';
 export type CosmeticRarity = 'COMMON' | 'RARE' | 'EPIC' | 'LEGENDARY' | 'MYTHIC';
 
@@ -98,32 +98,34 @@ export interface CosmeticItem {
   name: string;
   category: CosmeticCategory;
   rarity: CosmeticRarity;
-  imageUrl: string;
+  ipfsHash: string;
   maxSupply: number;
-  currentSupply: number;
   minTierRequired: TierLevel;
 }
 
 export interface MarketListing {
   listingId: number;
   seller: string;
-  item: CosmeticItem;
+  itemId: number;
   amount: number;
-  pricePerUnit: string; // in ETH
-  status: 'ACTIVE' | 'SOLD' | 'CANCELLED';
-  createdAt: string;
+  pricePerUnit: bigint;
+  active: boolean;
 }
 
-// --- Achievement ---
+// --- Achievement (DB: Achievement table + SC: AchievementNFT) ---
 export interface Achievement {
   id: string;
+  userId: string;
   eventId: string;
-  eventName: string;
+  participationId: string | null;
+  tokenId: number | null;
   tier: number;
-  tokenId: number;
-  metadataHash: string;
-  mintedAt: string;
-  imageUrl: string;
+  verifiedDistanceMeters: number;
+  metadataUri: string | null;
+  metadataHash: string | null;
+  mintedAt: string | null;
+  txHash: string | null;
+  verifiedAt: string | null;
 }
 
 // --- Geolocation ---

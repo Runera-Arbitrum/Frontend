@@ -133,6 +133,22 @@ body {
   animation: pulse-ring 2s ease-out infinite;
 }
 
+/* Duolingo-style flame animation */
+@keyframes flameWobble {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+  25%      { transform: scale(1.05) rotate(-3deg); filter: brightness(1.1); }
+  50%      { transform: scale(1.08) rotate(1deg); filter: brightness(1.15); }
+  75%      { transform: scale(1.03) rotate(-1deg); filter: brightness(1.05); }
+}
+
+@keyframes flameGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.3), 0 0 24px rgba(249, 115, 22, 0.1); }
+  50%      { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(249, 115, 22, 0.2); }
+}
+
+.flame-animated { animation: flameWobble 2.5s ease-in-out infinite; display: inline-flex; }
+.flame-glow { animation: flameGlow 2s ease-in-out infinite; border-radius: 50%; }
+
 /* Toast notifications */
 @keyframes toastSlideIn {
   from { opacity: 0; transform: translateY(-100%); }

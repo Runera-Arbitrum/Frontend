@@ -49,7 +49,7 @@ export default function BottomNav() {
                 className="flex items-center justify-center"
               >
                 <div className={cn(
-                  'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200',
+                  'w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200',
                   isActive ? 'bg-[#0072F4]' : '',
                 )}>
                   <Icon

@@ -8,8 +8,10 @@ import { submitRun } from "@/lib/api";
 import { formatDistance, formatDuration, formatPace } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import { getProfile } from "@/lib/api";
 import {
   Play,
   Square,
@@ -50,7 +52,17 @@ export default function RecordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [xpEarned, setXpEarned] = useState<number | null>(null);
   const [runStartTime, setRunStartTime] = useState<string>("");
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const geo = useGeolocation();
+
+  // Check if user has a profile NFT
+  useEffect(() => {
+    if (!walletAddress) return;
+    getProfile(walletAddress)
+      .then((p) => setHasProfile(!!p?.profileTokenId))
+      .catch(() => setHasProfile(false));
+  }, [walletAddress]);
 
   // Validation steps
   const [validateSteps, setValidateSteps] = useState<ValidateStep[]>([
@@ -79,6 +91,10 @@ export default function RecordPage() {
 
   // --- Handlers ---
   const handleStart = useCallback(() => {
+    if (hasProfile === false) {
+      setShowProfileModal(true);
+      return;
+    }
     setState("running");
     setRunView("map");
     setElapsed(0);
@@ -91,7 +107,7 @@ export default function RecordPage() {
       window.localStorage.setItem("runera_recording", "true");
       window.dispatchEvent(new Event("storage"));
     }
-  }, [geo]);
+  }, [geo, hasProfile]);
 
   const handlePause = useCallback(() => {
     setState("paused");
@@ -233,11 +249,39 @@ export default function RecordPage() {
         <div className="flex justify-center pb-8">
           <button
             onClick={handleStart}
-            className="w-[72px] h-[72px] rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
+            className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
           >
-            <Footprints size={28} className="text-white" strokeWidth={2} />
+            <Footprints size={30} className="text-white" strokeWidth={2} />
           </button>
         </div>
+
+        {/* Profile required modal */}
+        <Modal
+          open={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          title="Set Up Your Profile"
+        >
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Footprints size={28} className="text-primary" />
+            </div>
+            <p className="text-sm text-text-secondary leading-relaxed mb-1">
+              You need to set up your profile before recording runs.
+            </p>
+            <p className="text-xs text-text-tertiary mb-5">
+              It only takes a moment to get started.
+            </p>
+            <a href="/profile" className="w-full">
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full rounded-2xl min-h-[48px]"
+              >
+                Set Up Profile
+              </Button>
+            </a>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -499,7 +543,10 @@ export default function RecordPage() {
         {/* Steps */}
         <div className="w-full max-w-xs mx-auto space-y-4">
           {validateSteps.map((step, i) => (
-            <div key={i} className="flex items-center justify-center gap-3">
+            <div key={i} className={cn(
+              "flex items-center justify-center gap-3 transition-opacity duration-500",
+              step.status === "done" && "opacity-50",
+            )}>
               <div className="w-6 h-6 flex items-center justify-center">
                 {step.status === "done" ? (
                   <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">

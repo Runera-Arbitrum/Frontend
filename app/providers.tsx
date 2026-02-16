@@ -17,10 +17,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           accentColor: '#0072F4',
           logo: '/runera biru.png',
         },
-        loginMethods: ['email', 'google'],
+        loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {
           ethereum: {
-            createOnLogin: 'users-without-wallets',
+            createOnLogin: 'all-users',
           },
         },
       }}
