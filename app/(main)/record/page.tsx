@@ -54,6 +54,7 @@ export default function RecordPage() {
   const [runStartTime, setRunStartTime] = useState<string>("");
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [demoDistance, setDemoDistance] = useState<number | null>(null);
   const geo = useGeolocation();
 
   // Check if user has a profile NFT
@@ -78,15 +79,18 @@ export default function RecordPage() {
     return () => clearInterval(interval);
   }, [state]);
 
+  // Use demo distance when available, otherwise real geo distance
+  const effectiveDistance = demoDistance ?? geo.totalDistanceMeters;
+
   const pace =
-    elapsed > 0 && geo.totalDistanceMeters > 0
-      ? elapsed / (geo.totalDistanceMeters / 1000)
+    elapsed > 0 && effectiveDistance > 0
+      ? elapsed / (effectiveDistance / 1000)
       : 0;
 
-  const distanceKm = (geo.totalDistanceMeters / 1000).toFixed(2);
+  const distanceKm = (effectiveDistance / 1000).toFixed(2);
   const speedKmh =
-    elapsed > 0 && geo.totalDistanceMeters > 0
-      ? (geo.totalDistanceMeters / 1000 / (elapsed / 3600)).toFixed(1)
+    elapsed > 0 && effectiveDistance > 0
+      ? (effectiveDistance / 1000 / (elapsed / 3600)).toFixed(1)
       : "0.0";
 
   // --- Handlers ---
@@ -159,6 +163,7 @@ export default function RecordPage() {
     setState("idle");
     setRunView("map");
     setElapsed(0);
+    setDemoDistance(null);
     geo.resetPath();
     // Show bottom nav again
     if (typeof window !== "undefined") {
@@ -167,19 +172,65 @@ export default function RecordPage() {
     }
   }, [geo]);
 
+  const handleDemoRun = useCallback(() => {
+    if (hasProfile === false) {
+      setShowProfileModal(true);
+      return;
+    }
+    // Simulate a 3.2km run in 18 minutes
+    const fakeDist = 3200;
+    const fakeDur = 1080;
+    setElapsed(fakeDur);
+    setRunStartTime(new Date(Date.now() - fakeDur * 1000).toISOString());
+    geo.resetPath();
+    setDemoDistance(fakeDist);
+    setState("validating");
+
+    setValidateSteps([
+      { label: "Upload data packet", status: "loading" },
+      { label: "Verify GPS path", status: "pending" },
+      { label: "Approve score", status: "pending" },
+    ]);
+
+    setTimeout(() => {
+      setValidateSteps([
+        { label: "Upload data packet", status: "done" },
+        { label: "Verify GPS path", status: "loading" },
+        { label: "Approve score", status: "pending" },
+      ]);
+    }, 1200);
+
+    setTimeout(() => {
+      setValidateSteps([
+        { label: "Upload data packet", status: "done" },
+        { label: "Verify GPS path", status: "done" },
+        { label: "Uploading data", status: "loading" },
+      ]);
+    }, 2400);
+
+    setTimeout(() => {
+      setValidateSteps([
+        { label: "Upload data packet", status: "done" },
+        { label: "GPS path verified", status: "done" },
+        { label: "Data updated", status: "done" },
+      ]);
+      setState("summary");
+    }, 3600);
+  }, [geo, hasProfile]);
+
   const handleSubmit = useCallback(async () => {
     if (!walletAddress || submitting) return;
     try {
       setSubmitting(true);
       const result = await submitRun({
         walletAddress,
-        distanceMeters: geo.totalDistanceMeters,
+        distanceMeters: effectiveDistance,
         durationSeconds: elapsed,
         startTime: runStartTime,
         endTime: new Date().toISOString(),
         avgPaceSeconds: pace,
-        deviceHash: "", // Will be added by submitRun internally
-        path: geo.path,
+        deviceHash: "",
+        path: geo.path.length > 0 ? geo.path : [{ lat: -6.2, lng: 106.8, timestamp: Date.now() }],
       });
 
       if (result.success && result.status === "VERIFIED") {
@@ -202,11 +253,12 @@ export default function RecordPage() {
   }, [
     walletAddress,
     submitting,
-    geo.totalDistanceMeters,
+    effectiveDistance,
     elapsed,
     runStartTime,
     pace,
     handleReset,
+    geo.path,
   ]);
 
   // --- IDLE ---
@@ -246,12 +298,18 @@ export default function RecordPage() {
         </div>
 
         {/* Start button — shoe icon */}
-        <div className="flex justify-center pb-8">
+        <div className="flex flex-col items-center gap-4 pb-8">
           <button
             onClick={handleStart}
             className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
           >
             <Footprints size={30} className="text-white" strokeWidth={2} />
+          </button>
+          <button
+            onClick={handleDemoRun}
+            className="text-xs text-text-tertiary underline underline-offset-2"
+          >
+            Try Demo Run
           </button>
         </div>
 

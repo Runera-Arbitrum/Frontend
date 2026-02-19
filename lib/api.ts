@@ -8,6 +8,7 @@ import type {
   UserProfile,
   Run,
   RunSubmitPayload,
+  TierLevel,
 } from './types';
 
 // Use Next.js rewrite proxy to bypass CORS
@@ -63,9 +64,39 @@ export async function connectWallet(
 // --- Profile ---
 
 export async function getProfile(walletAddress: string): Promise<UserProfile> {
-  const res = await apiFetch<any>(`/profile/${walletAddress}`);
-  // Handle both { profile: {...} } and direct object formats
-  return res.profile || res;
+  try {
+    const res = await apiFetch<any>(`/profile/${walletAddress}/metadata`);
+    return res.profile || res;
+  } catch (err) {
+    // Fallback: read profile directly from smart contract if backend fails
+    console.warn('Backend profile fetch failed, trying on-chain fallback:', err);
+    const { getProfileData, getProfileTokenId, getProfileTier } = await import('./contracts/profile');
+    const address = walletAddress as `0x${string}`;
+
+    const [profileData, tokenId, tier] = await Promise.all([
+      getProfileData(address),
+      getProfileTokenId(address),
+      getProfileTier(address),
+    ]);
+
+    if (!profileData || !profileData.exists) {
+      throw new Error('Profile not found');
+    }
+
+    return {
+      id: walletAddress,
+      walletAddress,
+      exp: Number(profileData.xp),
+      level: profileData.level,
+      tier: (tier || 1) as TierLevel,
+      runCount: profileData.runCount,
+      verifiedRunCount: profileData.runCount,
+      totalDistanceMeters: Number(profileData.totalDistanceMeters),
+      longestStreakDays: profileData.longestStreakDays,
+      profileTokenId: Number(tokenId) || null,
+      onchainNonce: 0,
+    };
+  }
 }
 
 // --- Runs ---

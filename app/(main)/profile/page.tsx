@@ -9,7 +9,13 @@ import { arbitrumSepolia } from "viem/chains";
 import { CONTRACT_ADDRESSES } from "@/lib/constants";
 import ProfileNFTABI from "@/lib/contracts/abis/RuneraProfileNFT.json";
 import type { UserProfile, Run } from "@/lib/types";
-import { truncateAddress, formatDistance, formatDuration, formatPace, timeAgo } from "@/lib/utils";
+import {
+  truncateAddress,
+  formatDistance,
+  formatDuration,
+  formatPace,
+  timeAgo,
+} from "@/lib/utils";
 import { MOCK_ACTIVITY_FEED } from "@/lib/mock-data";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
@@ -184,7 +190,9 @@ export default function ProfilePage() {
       setFaucetLoading(true);
       const result = await requestFaucet(walletAddress);
       if (result.success) {
-        const amount = result.amount || (result.amountWei ? `${Number(result.amountWei) / 1e18}` : '0.0005');
+        const amount =
+          result.amount ||
+          (result.amountWei ? `${Number(result.amountWei) / 1e18}` : "0.0005");
         toastSuccess(`Faucet sent! ${amount} ETH`);
       } else {
         toastError(`Faucet error: ${result.error}`);
@@ -244,7 +252,7 @@ export default function ProfilePage() {
     }
   };
 
-  const hasProfile = !!(user?.profileTokenId);
+  const hasProfile = !!user?.profileTokenId;
 
   if (loading) {
     return (
@@ -278,14 +286,16 @@ export default function ProfilePage() {
 
         <div className="px-5 -mt-4 space-y-3">
           {/* Step 1: Wallet */}
-          <Card className="!bg-white !border-border-light">
+          <Card variant="white">
             <div className="flex items-start gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
-                walletAddress
-                  ? "bg-success/10 text-success"
-                  : "bg-primary/10 text-primary animate-pulse",
-              )}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  walletAddress
+                    ? "bg-success/10 text-success"
+                    : "bg-primary/10 text-primary animate-pulse",
+                )}
+              >
                 {walletAddress ? <Check size={16} /> : "1"}
               </div>
               <div className="flex-1">
@@ -310,14 +320,16 @@ export default function ProfilePage() {
           </Card>
 
           {/* Step 2: Faucet */}
-          <Card className="!bg-white !border-border-light">
+          <Card variant="white">
             <div className="flex items-start gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
-                !walletAddress
-                  ? "bg-surface-tertiary text-text-tertiary"
-                  : "bg-info/10 text-info",
-              )}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  !walletAddress
+                    ? "bg-surface-tertiary text-text-tertiary"
+                    : "bg-info/10 text-info",
+                )}
+              >
                 2
               </div>
               <div className="flex-1">
@@ -334,9 +346,12 @@ export default function ProfilePage() {
                     className="mt-2.5"
                     onClick={handleFaucet}
                     disabled={faucetLoading || !walletAddress}
-                    icon={faucetLoading
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <Droplets size={14} />
+                    icon={
+                      faucetLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Droplets size={14} />
+                      )
                     }
                   >
                     {faucetLoading ? "Requesting..." : "Request Faucet"}
@@ -347,14 +362,16 @@ export default function ProfilePage() {
           </Card>
 
           {/* Step 3: Mint Profile */}
-          <Card className="!bg-white !border-border-light">
+          <Card variant="white">
             <div className="flex items-start gap-3">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
-                !walletReady
-                  ? "bg-surface-tertiary text-text-tertiary"
-                  : "bg-primary/10 text-primary",
-              )}>
+              <div
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  !walletReady
+                    ? "bg-surface-tertiary text-text-tertiary"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
                 3
               </div>
               <div className="flex-1">
@@ -371,9 +388,12 @@ export default function ProfilePage() {
                     className="mt-2.5"
                     onClick={handleMintProfile}
                     disabled={mintLoading}
-                    icon={mintLoading
-                      ? <Loader2 size={14} className="animate-spin" />
-                      : <Shield size={14} />
+                    icon={
+                      mintLoading ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Shield size={14} />
+                      )
                     }
                   >
                     {mintLoading ? "Creating..." : "Create Profile"}
@@ -390,8 +410,8 @@ export default function ProfilePage() {
             </p>
             <p className="text-xs text-text-tertiary leading-relaxed">
               Your profile is your runner identity. It tracks your running
-              stats, XP, and tier securely. Without it, you cannot
-              record runs, join events, or buy cosmetics.
+              stats, XP, and tier securely. Without it, you cannot record runs,
+              join events, or buy cosmetics.
             </p>
           </div>
         </div>
@@ -526,20 +546,22 @@ export default function ProfilePage() {
 
       {/* Tab Navigation — iOS segmented control */}
       <div className="mt-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5">
-        {(["stats", "feed", "achievements", "equipped"] as ProfileTab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200",
-              activeTab === tab
-                ? "bg-surface text-text-primary shadow-card"
-                : "text-text-tertiary",
-            )}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+        {(["stats", "feed", "achievements", "equipped"] as ProfileTab[]).map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200",
+                activeTab === tab
+                  ? "bg-surface text-text-primary shadow-card"
+                  : "text-text-tertiary",
+              )}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ),
+        )}
       </div>
 
       {/* Tab Content */}
