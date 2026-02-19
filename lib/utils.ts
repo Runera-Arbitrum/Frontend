@@ -33,8 +33,9 @@ export function calcLevelProgress(xp: number): number {
 
 /** Format meters to km string */
 export function formatDistance(meters: number): string {
-  if (meters < 1000) return `${meters}m`;
-  return `${(meters / 1000).toFixed(2)} km`;
+  const m = meters || 0;
+  if (m < 1000) return `${m}m`;
+  return `${(m / 1000).toFixed(2)} km`;
 }
 
 /** Format seconds to MM:SS pace per km */

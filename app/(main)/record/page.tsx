@@ -61,7 +61,7 @@ export default function RecordPage() {
   useEffect(() => {
     if (!walletAddress) return;
     getProfile(walletAddress)
-      .then((p) => setHasProfile(!!p?.profileTokenId))
+      .then((p) => setHasProfile(p != null))
       .catch(() => setHasProfile(false));
   }, [walletAddress]);
 

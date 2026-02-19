@@ -252,7 +252,7 @@ export default function ProfilePage() {
     }
   };
 
-  const hasProfile = !!user?.profileTokenId;
+  const hasProfile = user != null;
 
   if (loading) {
     return (

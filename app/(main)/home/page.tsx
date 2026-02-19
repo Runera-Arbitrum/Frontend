@@ -127,7 +127,7 @@ export default function HomePage() {
   }, [walletAddress]);
 
   // Computed values
-  const levelProgress = user ? calcLevelProgress(user.exp) : 0;
+  const levelProgress = user?.exp ? calcLevelProgress(user.exp) : 0;
   const streakCalendar = getStreakCalendar(runs);
   const currentStreak = calculateCurrentStreak(runs);
 
@@ -143,14 +143,15 @@ export default function HomePage() {
     );
   }
 
-  // Default values if profile not yet created
-  const displayUser = user || {
-    exp: 0,
-    level: 1,
-    tier: 1 as TierLevel,
-    totalDistanceMeters: 0,
-    verifiedRunCount: 0,
-    longestStreakDays: 0,
+  // Default values if profile not yet created — guard against NaN from SC reads
+  const displayUser = {
+    exp: user?.exp ?? 0,
+    level: user?.level ?? 1,
+    tier: (user?.tier ?? 1) as TierLevel,
+    totalDistanceMeters: user?.totalDistanceMeters ?? 0,
+    verifiedRunCount: user?.verifiedRunCount ?? 0,
+    longestStreakDays: user?.longestStreakDays ?? 0,
+    profileTokenId: user?.profileTokenId ?? null,
   };
 
   return (

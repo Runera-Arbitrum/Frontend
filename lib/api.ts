@@ -88,14 +88,14 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
     return {
       id: walletAddress,
       walletAddress,
-      exp: Number(profileData.xp),
-      level: profileData.level,
+      exp: Number(profileData.xp) || 0,
+      level: profileData.level || 1,
       tier: (tier || 1) as TierLevel,
-      runCount: profileData.runCount,
-      verifiedRunCount: profileData.runCount,
-      totalDistanceMeters: Number(profileData.totalDistanceMeters),
-      longestStreakDays: profileData.longestStreakDays,
-      profileTokenId: Number(tokenId) || null,
+      runCount: profileData.runCount || 0,
+      verifiedRunCount: profileData.runCount || 0,
+      totalDistanceMeters: Number(profileData.totalDistanceMeters) || 0,
+      longestStreakDays: profileData.longestStreakDays || 0,
+      profileTokenId: Number(tokenId) ?? null,
       onchainNonce: 0,
     };
   } catch {
