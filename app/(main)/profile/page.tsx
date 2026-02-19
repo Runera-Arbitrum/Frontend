@@ -518,23 +518,12 @@ export default function ProfilePage() {
           )}
           <p className="text-xs font-medium text-text-secondary">Faucet</p>
         </Card>
-        <Card
-          hoverable
-          className="flex-1 text-center py-3.5"
-          onClick={handleMintProfile}
-        >
-          {mintLoading ? (
-            <Loader2
-              size={17}
-              className="text-primary/60 mx-auto mb-1.5 animate-spin"
-            />
-          ) : (
-            <Shield size={17} className="text-primary/60 mx-auto mb-1.5" />
-          )}
-          <p className="text-xs font-medium text-text-secondary">
-            Create Profile
-          </p>
-        </Card>
+        <a href="/record" className="flex-1">
+          <Card hoverable className="text-center py-3.5">
+            <Footprints size={17} className="text-primary/60 mx-auto mb-1.5" />
+            <p className="text-xs font-medium text-text-secondary">Record</p>
+          </Card>
+        </a>
         <Card hoverable className="flex-1 text-center py-3.5">
           <Settings
             size={17}

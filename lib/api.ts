@@ -10,6 +10,7 @@ import type {
   RunSubmitPayload,
   TierLevel,
 } from './types';
+import { getProfileData, getProfileTokenId, getProfileTier } from './contracts/profile';
 
 // Use Next.js rewrite proxy to bypass CORS
 // Browser requests go to /api/backend/... → Next.js forwards to Railway backend
@@ -63,25 +64,26 @@ export async function connectWallet(
 
 // --- Profile ---
 
-export async function getProfile(walletAddress: string): Promise<UserProfile> {
+export async function getProfile(walletAddress: string): Promise<UserProfile | null> {
+  // Try backend first
   try {
     const res = await apiFetch<any>(`/profile/${walletAddress}/metadata`);
     return res.profile || res;
-  } catch (err) {
-    // Fallback: read profile directly from smart contract if backend fails
-    console.warn('Backend profile fetch failed, trying on-chain fallback:', err);
-    const { getProfileData, getProfileTokenId, getProfileTier } = await import('./contracts/profile');
-    const address = walletAddress as `0x${string}`;
+  } catch {
+    // Backend failed (404 or error) — fall through to SC fallback
+  }
 
+  // Fallback: read directly from smart contract
+  try {
+    const address = walletAddress as `0x${string}`;
     const [profileData, tokenId, tier] = await Promise.all([
       getProfileData(address),
       getProfileTokenId(address),
       getProfileTier(address),
     ]);
 
-    if (!profileData || !profileData.exists) {
-      throw new Error('Profile not found');
-    }
+    // If profile doesn't exist on-chain either, return null
+    if (!profileData || !profileData.exists) return null;
 
     return {
       id: walletAddress,
@@ -96,6 +98,9 @@ export async function getProfile(walletAddress: string): Promise<UserProfile> {
       profileTokenId: Number(tokenId) || null,
       onchainNonce: 0,
     };
+  } catch {
+    // SC also failed (wallet not registered) — return null silently
+    return null;
   }
 }
 

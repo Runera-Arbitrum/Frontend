@@ -31,7 +31,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="mb-8">
           <Image
-            src="/runera biru.png"
+            src="/runera-biru.png"
             alt="Runera"
             width={80}
             height={80}

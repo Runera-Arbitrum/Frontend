@@ -160,7 +160,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
-              src="/runera biru.png"
+              src="/runera-biru.png"
               alt="Runera"
               width={36}
               height={36}
