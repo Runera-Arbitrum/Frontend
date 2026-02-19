@@ -64,10 +64,42 @@ export async function connectWallet(
 
 // --- Profile ---
 
+// Map tier name string to TierLevel number
+const TIER_NAME_MAP: Record<string, TierLevel> = {
+  Bronze: 1, Silver: 2, Gold: 3, Platinum: 4, Diamond: 5,
+};
+
+// Helper: extract value from NFT metadata attributes array
+function getAttr(attributes: Array<{ trait_type: string; value: any }>, name: string): any {
+  return attributes?.find((a) => a.trait_type === name)?.value;
+}
+
 export async function getProfile(walletAddress: string): Promise<UserProfile | null> {
-  // Try backend first
+  // Try backend first — returns NFT metadata format with attributes array
   try {
     const res = await apiFetch<any>(`/profile/${walletAddress}/metadata`);
+
+    // Backend returns { name, description, image, attributes: [...] }
+    if (res.attributes && Array.isArray(res.attributes)) {
+      const tierStr = getAttr(res.attributes, 'Tier') || 'Bronze';
+      const distanceKm = Number(getAttr(res.attributes, 'Total Distance (km)')) || 0;
+
+      return {
+        id: walletAddress,
+        walletAddress,
+        exp: Number(getAttr(res.attributes, 'XP')) || 0,
+        level: Number(getAttr(res.attributes, 'Level')) || 1,
+        tier: (TIER_NAME_MAP[tierStr] || 1) as TierLevel,
+        runCount: Number(getAttr(res.attributes, 'Runs')) || 0,
+        verifiedRunCount: Number(getAttr(res.attributes, 'Runs')) || 0,
+        totalDistanceMeters: Math.round(distanceKm * 1000),
+        longestStreakDays: Number(getAttr(res.attributes, 'Longest Streak (days)')) || 0,
+        profileTokenId: 1, // metadata exists → profile is minted
+        onchainNonce: 0,
+      };
+    }
+
+    // Fallback: maybe backend returns flat profile object in the future
     return res.profile || res;
   } catch {
     // Backend failed (404 or error) — fall through to SC fallback
@@ -82,7 +114,6 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
       getProfileTier(address),
     ]);
 
-    // If profile doesn't exist on-chain either, return null
     if (!profileData || !profileData.exists) return null;
 
     return {
@@ -99,7 +130,6 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
       onchainNonce: 0,
     };
   } catch {
-    // SC also failed (wallet not registered) — return null silently
     return null;
   }
 }
