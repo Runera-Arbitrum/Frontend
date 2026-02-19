@@ -1,66 +1,55 @@
 @import "tailwindcss";
 
-/* ============================================
-   Runera Design System — Gentler Streak Inspired
-   Soft, calm, minimal, premium iOS-style
-   ============================================ */
-
 @theme inline {
-  /* Primary Blue — vibrant #0072F4 */
-  --color-primary: #0072F4;
-  --color-primary-light: #3B93FF;
-  --color-primary-dark: #0059C2;
-  --color-primary-50: #EBF3FF;
-  --color-primary-100: #D6E8FF;
-  --color-primary-200: #ADC8FF;
+  --color-primary: #0072f4;
+  --color-primary-light: #3b93ff;
+  --color-primary-dark: #0059c2;
+  --color-primary-50: #ebf3ff;
+  --color-primary-100: #d6e8ff;
+  --color-primary-200: #adc8ff;
 
-  /* Neutral Palette */
-  --color-surface: #FFFFFF;
-  --color-surface-secondary: #F7F8FA;
-  --color-surface-tertiary: #F0F1F4;
-  --color-surface-warm: #FAFAF8;
-  --color-border: #E2E5EA;
-  --color-border-light: #ECEEF2;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f7f8fa;
+  --color-surface-tertiary: #f0f1f4;
+  --color-surface-warm: #fafaf8;
+  --color-border: #e2e5ea;
+  --color-border-light: #eceef2;
 
-  /* Text — clear contrast */
-  --color-text-primary: #0F1729;
-  --color-text-secondary: #3D4B5C;
-  --color-text-tertiary: #8893A2;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: #0f1729;
+  --color-text-secondary: #3d4b5c;
+  --color-text-tertiary: #8893a2;
+  --color-text-inverse: #ffffff;
 
-  /* Status — vivid, clear */
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #06B6D4;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #06b6d4;
 
-  /* Tier Colors — rich */
-  --color-tier-bronze: #CD7F32;
-  --color-tier-silver: #A8B4BD;
-  --color-tier-gold: #FFD700;
-  --color-tier-platinum: #B0C4CE;
-  --color-tier-diamond: #48C9F4;
+  --color-tier-bronze: #cd7f32;
+  --color-tier-silver: #a8b4bd;
+  --color-tier-gold: #ffd700;
+  --color-tier-platinum: #b0c4ce;
+  --color-tier-diamond: #48c9f4;
 
-  /* Rarity — vivid */
-  --color-rarity-common: #8893A2;
-  --color-rarity-rare: #0072F4;
-  --color-rarity-epic: #8B5CF6;
-  --color-rarity-legendary: #F59E0B;
-  --color-rarity-mythic: #EF4444;
+  --color-rarity-common: #8893a2;
+  --color-rarity-rare: #0072f4;
+  --color-rarity-epic: #8b5cf6;
+  --color-rarity-legendary: #f59e0b;
+  --color-rarity-mythic: #ef4444;
 
-  /* Fonts */
-  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans:
+    var(--font-geist-sans), -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 
-  /* Shadows */
   --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover:
+    0 4px 16px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
   --shadow-bottom-nav: 0 -1px 20px rgba(0, 0, 0, 0.05);
   --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.06);
   --shadow-gentle: 0 2px 10px rgba(0, 114, 244, 0.15);
 }
 
-/* Base styles */
 * {
   -webkit-tap-highlight-color: transparent;
 }
@@ -72,7 +61,7 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: #F5F6F8;
+  background: #f5f6f8;
   color: var(--color-text-primary);
   min-height: 100dvh;
   overflow-x: hidden;
@@ -81,7 +70,6 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Mobile container - max 430px centered */
 .mobile-container {
   max-width: 430px;
   margin: 0 auto;
@@ -91,7 +79,6 @@ body {
   box-shadow: 0 0 60px rgba(0, 0, 0, 0.03);
 }
 
-/* Hide scrollbar but keep functionality */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -100,31 +87,50 @@ body {
   display: none;
 }
 
-/* Tier badge gradients — rich */
-.tier-bronze { background: linear-gradient(135deg, #CD7F32, #E8A84C); }
-.tier-silver { background: linear-gradient(135deg, #A8B4BD, #CDD5DC); }
-.tier-gold { background: linear-gradient(135deg, #FFD700, #FFE44D); }
-.tier-platinum { background: linear-gradient(135deg, #B0C4CE, #D0DCE4); }
-.tier-diamond { background: linear-gradient(135deg, #48C9F4, #7EDCFF); }
+.tier-bronze {
+  background: linear-gradient(135deg, #cd7f32, #e8a84c);
+}
+.tier-silver {
+  background: linear-gradient(135deg, #a8b4bd, #cdd5dc);
+}
+.tier-gold {
+  background: linear-gradient(135deg, #ffd700, #ffe44d);
+}
+.tier-platinum {
+  background: linear-gradient(135deg, #b0c4ce, #d0dce4);
+}
+.tier-diamond {
+  background: linear-gradient(135deg, #48c9f4, #7edcff);
+}
 
-/* Smooth page transitions — gentle, organic */
 .page-enter {
   animation: gentleFadeIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @keyframes gentleFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Pulse animation for live tracking — softer */
 @keyframes pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.6; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 .pulse-dot::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -4px;
   border-radius: 50%;
@@ -133,31 +139,35 @@ body {
   animation: pulse-ring 2s ease-out infinite;
 }
 
-/* Duolingo-style flame animation */
-@keyframes flameWobble {
-  0%, 100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-  25%      { transform: scale(1.05) rotate(-3deg); filter: brightness(1.1); }
-  50%      { transform: scale(1.08) rotate(1deg); filter: brightness(1.15); }
-  75%      { transform: scale(1.03) rotate(-1deg); filter: brightness(1.05); }
+@keyframes bluePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.streak-pulse {
+  animation: bluePulse 2.5s ease-in-out infinite;
+  display: inline-flex;
 }
 
-@keyframes flameGlow {
-  0%, 100% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.3), 0 0 24px rgba(249, 115, 22, 0.1); }
-  50%      { box-shadow: 0 0 20px rgba(249, 115, 22, 0.5), 0 0 40px rgba(249, 115, 22, 0.2); }
-}
-
-.flame-animated { animation: flameWobble 2.5s ease-in-out infinite; display: inline-flex; }
-.flame-glow { animation: flameGlow 2s ease-in-out infinite; border-radius: 50%; }
-
-/* Toast notifications */
 @keyframes toastSlideIn {
-  from { opacity: 0; transform: translateY(-100%); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes toastSlideOut {
-  from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-100%); }
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
 }
 
 .animate-toast-in {
@@ -168,16 +178,14 @@ body {
   animation: toastSlideOut 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
 }
 
-/* Soft gradient backgrounds */
 .bg-gentle-gradient {
-  background: linear-gradient(180deg, #EBF3FF 0%, #FFFFFF 100%);
+  background: linear-gradient(180deg, #ebf3ff 0%, #ffffff 100%);
 }
 
 .bg-warm-gradient {
-  background: linear-gradient(180deg, #FAFAF8 0%, #FFFFFF 60%);
+  background: linear-gradient(180deg, #fafaf8 0%, #ffffff 60%);
 }
 
-/* Leaflet map overrides — softer */
 .leaflet-container {
   width: 100%;
   height: 100%;
@@ -201,7 +209,36 @@ body {
   line-height: 36px !important;
 }
 
-/* iOS-style safe area */
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stagger-item {
+  animation: staggerFadeIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  opacity: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0f1f4 25%, #e2e5ea 50%, #f0f1f4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 12px;
+}
+
 @supports (padding: env(safe-area-inset-bottom)) {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);

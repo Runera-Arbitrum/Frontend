@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import { TIER_NAMES, type TierLevel } from '@/lib/types';
 import type { ReactNode } from 'react';
 
-// --- Generic Badge ---
 type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'blue';
 
 const badgeVariants: Record<BadgeVariant, string> = {
@@ -36,7 +35,6 @@ export default function Badge({ children, variant = 'default', className }: Badg
   );
 }
 
-// --- Tier Badge ---
 const tierClasses: Record<TierLevel, string> = {
   1: 'tier-bronze text-amber-900/80',
   2: 'tier-silver text-gray-600',
@@ -59,7 +57,6 @@ export function TierBadge({ tier, className }: { tier: TierLevel; className?: st
   );
 }
 
-// --- Rarity Badge ---
 const rarityClasses: Record<string, string> = {
   COMMON: 'bg-gray-50 text-gray-500',
   RARE: 'bg-blue-50 text-blue-500',
@@ -82,7 +79,6 @@ export function RarityBadge({ rarity, className }: { rarity: string; className?:
   );
 }
 
-// --- Status Badge ---
 const statusVariants: Record<string, BadgeVariant> = {
   VERIFIED: 'success',
   SUBMITTED: 'blue',

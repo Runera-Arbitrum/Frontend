@@ -16,7 +16,8 @@
       "Bash(git push:*)",
       "Bash(head:*)",
       "Bash(find:*)",
-      "Bash(ren:*)"
+      "Bash(ren:*)",
+      "Bash(pnpm run build:*)"
     ]
   }
 }

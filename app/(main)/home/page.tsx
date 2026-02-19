@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getProfile, getRuns } from "@/lib/api";
+import { getProfile, getRuns, getEvents } from "@/lib/api";
 import type { UserProfile, Run } from "@/lib/types";
 import {
   truncateAddress,
@@ -10,6 +10,7 @@ import {
   formatDuration,
   formatPace,
   calcLevelProgress,
+  timeAgo,
 } from "@/lib/utils";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
@@ -24,10 +25,19 @@ import {
   ChevronRight,
   Zap,
   Check,
+  Award,
+  Calendar,
+  Clock,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  getUserAchievements,
+  getAchievement,
+  type AchievementData,
+} from "@/lib/contracts/achievements";
+import type { Hex } from "viem";
 
-// Generate streak calendar from run history
 const getStreakCalendar = (runs: Run[]) => {
   const today = new Date();
   const calendar = [];
@@ -52,7 +62,6 @@ const getStreakCalendar = (runs: Run[]) => {
   return calendar;
 };
 
-// Calculate current streak from runs
 const calculateCurrentStreak = (runs: Run[]): number => {
   const verifiedRuns = runs
     .filter((r) => r.status === "VERIFIED")
@@ -86,10 +95,32 @@ const calculateCurrentStreak = (runs: Run[]): number => {
   return streak;
 };
 
+interface AchievementWithEvent extends AchievementData {
+  eventIdHex: Hex;
+}
+
+interface EventItem {
+  eventId: string;
+  name: string;
+  targetDistanceMeters: number;
+  expReward: number;
+  startTime: string;
+  endTime: string;
+  active: boolean;
+  userProgress?: {
+    distanceCovered: number;
+    isEligible: boolean;
+    hasJoined: boolean;
+    hasClaimed: boolean;
+  };
+}
+
 export default function HomePage() {
   const { walletAddress } = useAuth();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
+  const [achievements, setAchievements] = useState<AchievementWithEvent[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -104,9 +135,10 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError(null);
-        const [profileRes, runsRes] = await Promise.allSettled([
+        const [profileRes, runsRes, eventsRes] = await Promise.allSettled([
           getProfile(walletAddress),
           getRuns(walletAddress),
+          getEvents(walletAddress),
         ]);
 
         if (profileRes.status === "fulfilled") {
@@ -114,6 +146,25 @@ export default function HomePage() {
         }
         if (runsRes.status === "fulfilled") {
           setRuns(runsRes.value.runs || []);
+        }
+        if (eventsRes.status === "fulfilled") {
+          setEvents(eventsRes.value.events || []);
+        }
+
+        try {
+          const addr = walletAddress as `0x${string}`;
+          const eventIds = await getUserAchievements(addr);
+          if (eventIds.length > 0) {
+            const achData = await Promise.all(
+              eventIds.map(async (eid) => {
+                const data = await getAchievement(addr, eid);
+                return data ? { ...data, eventIdHex: eid } : null;
+              }),
+            );
+            setAchievements(achData.filter(Boolean) as AchievementWithEvent[]);
+          }
+        } catch (scErr) {
+          console.error("Failed to fetch achievements from SC:", scErr);
         }
       } catch (err) {
         console.error("Failed to fetch home data:", err);
@@ -126,12 +177,10 @@ export default function HomePage() {
     fetchData();
   }, [walletAddress]);
 
-  // Computed values
   const levelProgress = user?.exp ? calcLevelProgress(user.exp) : 0;
   const streakCalendar = getStreakCalendar(runs);
   const currentStreak = calculateCurrentStreak(runs);
 
-  // Loading state
   if (loading) {
     return (
       <div className="page-enter flex items-center justify-center min-h-[60vh]">
@@ -143,7 +192,6 @@ export default function HomePage() {
     );
   }
 
-  // Default values if profile not yet created — guard against NaN from SC reads
   const displayUser = {
     exp: user?.exp ?? 0,
     level: user?.level ?? 1,
@@ -156,7 +204,6 @@ export default function HomePage() {
 
   return (
     <div className="page-enter">
-      {/* Hero Section */}
       <div className="bg-gentle-gradient px-5 pt-12 pb-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -178,27 +225,28 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Bento Grid */}
       <div className="px-5 mt-5 mb-6">
         <div className="grid grid-cols-2 gap-3">
-
-          {/* Streak — tall card, spans 2 rows */}
           <button
             onClick={() => setShowStreakModal(true)}
-            className="text-left row-span-2"
+            className="text-left row-span-2 cursor-pointer"
           >
-            <div className="h-full rounded-3xl bg-gradient-to-br from-orange-500/10 via-orange-400/5 to-yellow-500/10 border border-orange-500/15 p-4 flex flex-col justify-between shadow-card relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-2xl" />
+            <div className="h-full rounded-3xl bg-gradient-to-br from-primary/10 via-blue-400/5 to-blue-500/10 border border-primary/15 p-4 flex flex-col justify-between shadow-card relative overflow-hidden">
               <div className="relative">
-                <div className="flame-glow w-10 h-10 rounded-full bg-gradient-to-br from-orange-500/20 to-yellow-500/15 flex items-center justify-center mb-3">
-                  <Flame size={20} className="text-orange-500 flame-animated" fill="currentColor" strokeWidth={1.5} />
+                <div className="streak-pulse w-10 h-10 rounded-full bg-gradient-to-br from-primary/15 to-blue-500/10 flex items-center justify-center mb-3">
+                  <Flame
+                    size={20}
+                    className="text-primary"
+                    fill="currentColor"
+                    strokeWidth={1.5}
+                  />
                 </div>
                 <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">
                   Current Streak
                 </p>
               </div>
               <div className="relative">
-                <p className="text-4xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                <p className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                   {currentStreak}
                 </p>
                 <p className="text-xs text-text-tertiary mt-0.5">days</p>
@@ -206,7 +254,6 @@ export default function HomePage() {
             </div>
           </button>
 
-          {/* Total Distance */}
           <div className="rounded-3xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/15 p-4 shadow-card">
             <MapPin size={18} className="text-blue-500 mb-2" />
             <p className="text-2xl font-bold text-text-primary">
@@ -217,9 +264,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Verified Runs */}
-          <div className="rounded-3xl bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/15 p-4 shadow-card">
-            <Zap size={18} className="text-green-500 mb-2" />
+          <div className="rounded-3xl bg-gradient-to-br from-blue-400/10 to-blue-500/5 border border-blue-400/15 p-4 shadow-card">
+            <Zap size={18} className="text-blue-400 mb-2" />
             <p className="text-2xl font-bold text-text-primary">
               {displayUser.verifiedRunCount}
             </p>
@@ -228,7 +274,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Level / XP — full width */}
           <div className="col-span-2 rounded-3xl bg-gradient-to-r from-primary/8 via-primary-light/6 to-blue-400/8 border border-primary/12 p-4 shadow-card">
             <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
@@ -249,9 +294,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Collectibles */}
-          <div className="rounded-3xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/15 p-4 shadow-card">
-            <Trophy size={18} className="text-purple-500 mb-2" />
+          <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-blue-600/5 border border-primary/15 p-4 shadow-card">
+            <Trophy size={18} className="text-primary mb-2" />
             <p className="text-2xl font-bold text-text-primary">
               {user?.profileTokenId ? "1" : "0"}
             </p>
@@ -260,9 +304,8 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Best Streak */}
-          <div className="rounded-3xl bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 border border-yellow-500/15 p-4 shadow-card">
-            <Flame size={18} className="text-yellow-500 mb-2" />
+          <div className="rounded-3xl bg-gradient-to-br from-blue-300/10 to-blue-400/5 border border-blue-300/15 p-4 shadow-card">
+            <Flame size={18} className="text-blue-400 mb-2" />
             <p className="text-2xl font-bold text-text-primary">
               {displayUser.longestStreakDays}
             </p>
@@ -271,17 +314,20 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Latest Run — full width */}
           <div className="col-span-2 rounded-3xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
             <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-text-primary">Latest Run</span>
-              <button className="text-[11px] text-primary font-medium flex items-center gap-0.5">
+              <span className="text-xs font-semibold text-text-primary">
+                Latest Run
+              </span>
+              <button className="text-[11px] text-primary font-medium flex items-center gap-0.5 cursor-pointer">
                 All runs <ChevronRight size={12} />
               </button>
             </div>
             {runs.length === 0 ? (
               <div className="px-4 pb-4 text-center">
-                <p className="text-xs text-text-tertiary py-4">No runs yet. Start running!</p>
+                <p className="text-xs text-text-tertiary py-4">
+                  No runs yet. Start running!
+                </p>
               </div>
             ) : (
               <div className="px-4 pb-3.5">
@@ -299,7 +345,8 @@ export default function HomePage() {
                           {formatDistance(run.distanceMeters)}
                         </p>
                         <p className="text-[11px] text-text-tertiary">
-                          {formatDuration(run.durationSeconds)} · {formatPace(run.avgPaceSeconds)}
+                          {formatDuration(run.durationSeconds)} ·{" "}
+                          {formatPace(run.avgPaceSeconds)}
                         </p>
                       </div>
                     </div>
@@ -309,46 +356,295 @@ export default function HomePage() {
               </div>
             )}
           </div>
-
         </div>
       </div>
 
-      {/* Streak Detail Modal */}
+      <div className="px-5 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Award size={16} className="text-primary" />
+            <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+              Achievements
+            </span>
+          </div>
+          <span className="text-[11px] text-text-tertiary">
+            {achievements.length} earned
+          </span>
+        </div>
+        {achievements.length === 0 ? (
+          <div className="rounded-2xl bg-surface border border-border-light/70 p-5 text-center shadow-card">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
+              <Trophy size={22} className="text-primary/60" />
+            </div>
+            <p className="text-sm font-medium text-text-secondary mb-0.5">
+              No achievements yet
+            </p>
+            <p className="text-[11px] text-text-tertiary">
+              Complete events to earn badges!
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {achievements.map((ach, idx) => {
+              const tierLabels = [
+                "",
+                "Bronze",
+                "Silver",
+                "Gold",
+                "Platinum",
+                "Diamond",
+              ];
+              const tierColors = [
+                "",
+                "#CD7F32",
+                "#C0C0C0",
+                "#FFD700",
+                "#E5E4E2",
+                "#B9F2FF",
+              ];
+              const tierGradients = [
+                "",
+                "from-amber-600/15 to-amber-400/5",
+                "from-gray-400/15 to-gray-300/5",
+                "from-yellow-500/15 to-yellow-400/5",
+                "from-slate-300/15 to-slate-200/5",
+                "from-cyan-400/15 to-cyan-300/5",
+              ];
+              const t = ach.tier >= 1 && ach.tier <= 5 ? ach.tier : 1;
+              const unlockDate = new Date(Number(ach.unlockedAt) * 1000);
+
+              return (
+                <div
+                  key={ach.eventIdHex}
+                  className={cn(
+                    "stagger-item flex-shrink-0 w-[140px] rounded-2xl border p-3.5 shadow-card",
+                    `bg-gradient-to-br ${tierGradients[t]} border-border-light/60`,
+                  )}
+                  style={{ animationDelay: `${idx * 80}ms` }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center mb-2.5 mx-auto"
+                    style={{ background: `${tierColors[t]}22` }}
+                  >
+                    <Award size={20} style={{ color: tierColors[t] }} />
+                  </div>
+                  <p className="text-[11px] font-semibold text-text-primary text-center truncate">
+                    Tier {t} — {tierLabels[t]}
+                  </p>
+                  <p className="text-[10px] text-text-tertiary text-center mt-0.5">
+                    {unlockDate.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 mb-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-primary" />
+            <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+              Active Events
+            </span>
+          </div>
+          <a
+            href="/events"
+            className="text-[11px] text-primary font-medium flex items-center gap-0.5 cursor-pointer"
+          >
+            View all <ChevronRight size={12} />
+          </a>
+        </div>
+        {events.filter((e) => e.active).length === 0 ? (
+          <div className="rounded-2xl bg-surface border border-border-light/70 p-5 text-center shadow-card">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
+              <Calendar size={22} className="text-primary/60" />
+            </div>
+            <p className="text-sm font-medium text-text-secondary mb-0.5">
+              No active events
+            </p>
+            <p className="text-[11px] text-text-tertiary">
+              Check back soon for new challenges!
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {events
+              .filter((e) => e.active)
+              .slice(0, 2)
+              .map((evt, idx) => {
+                const end = new Date(evt.endTime);
+                const now = new Date();
+                const daysLeft = Math.max(
+                  0,
+                  Math.ceil((end.getTime() - now.getTime()) / 86400000),
+                );
+                const progress = evt.userProgress
+                  ? Math.min(
+                      100,
+                      Math.round(
+                        (evt.userProgress.distanceCovered /
+                          evt.targetDistanceMeters) *
+                          100,
+                      ),
+                    )
+                  : 0;
+
+                return (
+                  <div
+                    key={evt.eventId}
+                    className="stagger-item rounded-2xl bg-surface border border-border-light/70 p-4 shadow-card"
+                    style={{ animationDelay: `${idx * 100}ms` }}
+                  >
+                    <div className="flex items-start justify-between mb-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-text-primary truncate">
+                          {evt.name}
+                        </p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="text-[11px] text-text-tertiary flex items-center gap-1">
+                            <Target size={11} />{" "}
+                            {formatDistance(evt.targetDistanceMeters)}
+                          </span>
+                          <span className="text-[11px] text-text-tertiary flex items-center gap-1">
+                            <Zap size={11} /> {evt.expReward} XP
+                          </span>
+                          <span className="text-[11px] text-text-tertiary flex items-center gap-1">
+                            <Clock size={11} /> {daysLeft}d left
+                          </span>
+                        </div>
+                      </div>
+                      {evt.userProgress?.hasJoined ? (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
+                          Joined
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          Open
+                        </span>
+                      )}
+                    </div>
+                    {evt.userProgress?.hasJoined && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-text-tertiary">
+                            {progress}%
+                          </span>
+                          <span className="text-[10px] text-text-tertiary">
+                            {formatDistance(evt.userProgress.distanceCovered)} /{" "}
+                            {formatDistance(evt.targetDistanceMeters)}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-primary-100/60 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={16} className="text-primary" />
+            <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+              Activity Feed
+            </span>
+          </div>
+          <span className="text-[11px] text-text-tertiary">
+            {runs.length} total runs
+          </span>
+        </div>
+        {runs.length === 0 ? (
+          <div className="rounded-2xl bg-surface border border-border-light/70 p-5 text-center shadow-card">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2.5">
+              <TrendingUp size={22} className="text-primary/60" />
+            </div>
+            <p className="text-sm font-medium text-text-secondary mb-0.5">
+              No activity yet
+            </p>
+            <p className="text-[11px] text-text-tertiary">
+              Start running to see your activity here!
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
+            {runs.slice(0, 10).map((run, idx) => (
+              <div
+                key={run.id}
+                className="stagger-item flex items-center justify-between px-4 py-3 border-b border-border-light/40 last:border-b-0"
+                style={{ animationDelay: `${idx * 60}ms` }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                    <TrendingUp size={15} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary">
+                      {formatDistance(run.distanceMeters)}
+                    </p>
+                    <p className="text-[11px] text-text-tertiary">
+                      {formatDuration(run.durationSeconds)} ·{" "}
+                      {formatPace(run.avgPaceSeconds)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  <StatusBadge status={run.status} />
+                  <span className="text-[10px] text-text-tertiary">
+                    {timeAgo(run.startTime)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <Modal
         open={showStreakModal}
         onClose={() => setShowStreakModal(false)}
         title="Your Streak"
       >
         <div className="space-y-5">
-          {/* Current vs Longest */}
           <div className="flex items-center justify-center gap-6 py-2">
             <div className="text-center">
-              <div className="flame-glow w-14 h-14 rounded-full bg-gradient-to-br from-orange-500/20 to-yellow-500/15 flex items-center justify-center mx-auto mb-2">
+              <div className="streak-pulse w-14 h-14 rounded-full bg-gradient-to-br from-primary/15 to-blue-500/10 flex items-center justify-center mx-auto mb-2">
                 <Flame
                   size={28}
-                  className="text-orange-500 flame-animated"
+                  className="text-primary"
                   fill="currentColor"
                   strokeWidth={1.5}
                 />
               </div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+              <p className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                 {currentStreak}
               </p>
               <p className="text-xs text-text-tertiary mt-0.5">Current</p>
             </div>
             <div className="w-px h-12 bg-border-light" />
             <div className="text-center">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500/20 to-yellow-600/10 flex items-center justify-center mx-auto mb-2">
-                <Trophy size={24} className="text-yellow-500" />
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/15 to-blue-500/10 flex items-center justify-center mx-auto mb-2">
+                <Trophy size={24} className="text-primary/70" />
               </div>
-              <p className="text-3xl font-bold bg-gradient-to-r from-yellow-500 to-yellow-600 bg-clip-text text-transparent">
+              <p className="text-3xl font-bold bg-gradient-to-r from-primary/80 to-blue-500 bg-clip-text text-transparent">
                 {displayUser.longestStreakDays}
               </p>
               <p className="text-xs text-text-tertiary mt-0.5">Longest</p>
             </div>
           </div>
 
-          {/* 28-day calendar */}
           <div>
             <p className="text-[11px] text-text-tertiary font-medium mb-2 uppercase tracking-wide">
               Last 4 Weeks
@@ -370,7 +666,7 @@ export default function HomePage() {
                   className={cn(
                     "aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all",
                     day.hasRun
-                      ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm"
+                      ? "bg-gradient-to-br from-primary to-blue-500 text-white shadow-sm"
                       : day.isToday
                         ? "bg-surface-tertiary border-2 border-primary text-text-secondary"
                         : "bg-surface-tertiary text-text-tertiary/40",
@@ -386,8 +682,10 @@ export default function HomePage() {
             </div>
             <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border-light/30">
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded bg-gradient-to-br from-orange-500 to-orange-600" />
-                <span className="text-[10px] text-text-tertiary">Completed</span>
+                <div className="w-3 h-3 rounded bg-gradient-to-br from-primary to-blue-500" />
+                <span className="text-[10px] text-text-tertiary">
+                  Completed
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded bg-surface-tertiary" />
@@ -396,12 +694,14 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Weekly summary */}
           <div className="bg-surface-tertiary/50 rounded-2xl p-4">
-            <p className="text-xs font-medium text-text-secondary mb-2">This Week</p>
+            <p className="text-xs font-medium text-text-secondary mb-2">
+              This Week
+            </p>
             <div className="flex items-center justify-between">
               <p className="text-sm text-text-primary font-semibold">
-                {streakCalendar.slice(-7).filter((d) => d.hasRun).length} / 7 days
+                {streakCalendar.slice(-7).filter((d) => d.hasRun).length} / 7
+                days
               </p>
               <p className="text-xs text-text-tertiary">
                 {streakCalendar.slice(-7).filter((d) => d.hasRun).length >= 5

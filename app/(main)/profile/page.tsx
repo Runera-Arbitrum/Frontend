@@ -44,10 +44,19 @@ import {
   Loader2,
   MapPin,
 } from "lucide-react";
+import {
+  getUserAchievements,
+  getAchievement,
+  type AchievementData,
+} from "@/lib/contracts/achievements";
+import type { Hex } from "viem";
 
 type ProfileTab = "stats" | "feed" | "achievements" | "equipped";
 
-// Generate monthly calendar for streak visualization from real runs
+interface AchievementWithEvent extends AchievementData {
+  eventIdHex: Hex;
+}
+
 const getMonthlyStreakData = (runs: Run[]) => {
   const today = new Date();
   const year = today.getFullYear();
@@ -98,6 +107,7 @@ export default function ProfilePage() {
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
+  const [achievements, setAchievements] = useState<AchievementWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [faucetLoading, setFaucetLoading] = useState(false);
   const [mintLoading, setMintLoading] = useState(false);
@@ -122,6 +132,22 @@ export default function ProfilePage() {
         if (runsRes.status === "fulfilled") {
           setRuns(runsRes.value.runs || []);
         }
+
+        try {
+          const addr = walletAddress as `0x${string}`;
+          const eventIds = await getUserAchievements(addr);
+          if (eventIds.length > 0) {
+            const achData = await Promise.all(
+              eventIds.map(async (eid) => {
+                const data = await getAchievement(addr, eid);
+                return data ? { ...data, eventIdHex: eid } : null;
+              }),
+            );
+            setAchievements(achData.filter(Boolean) as AchievementWithEvent[]);
+          }
+        } catch (scErr) {
+          console.error("Failed to fetch achievements:", scErr);
+        }
       } catch (err) {
         console.error("Failed to fetch profile data:", err);
       } finally {
@@ -132,7 +158,6 @@ export default function ProfilePage() {
     fetchData();
   }, [walletAddress]);
 
-  // Computed values
   const displayUser = user || {
     exp: 0,
     level: 1,
@@ -146,7 +171,6 @@ export default function ProfilePage() {
   const monthlyStreak = getMonthlyStreakData(runs);
   const thisMonthRuns = monthlyStreak.calendar.filter((d) => d?.hasRun).length;
 
-  // Calculate current streak
   const calculateCurrentStreak = (): number => {
     const verifiedRuns = runs
       .filter((r) => r.status === "VERIFIED")
@@ -212,10 +236,8 @@ export default function ProfilePage() {
     try {
       setMintLoading(true);
 
-      // Switch wallet to Arbitrum Sepolia before sending transaction
       await activeWallet.switchChain(arbitrumSepolia.id);
 
-      // Get Privy wallet provider and create viem wallet client
       const provider = await activeWallet.getEthereumProvider();
       const walletClient = createWalletClient({
         chain: arbitrumSepolia,
@@ -223,7 +245,6 @@ export default function ProfilePage() {
         account: walletAddress as Address,
       });
 
-      // Call register() directly on-chain (no params, msg.sender = user)
       const txHash = await walletClient.writeContract({
         address: CONTRACT_ADDRESSES.profileNFT as Address,
         abi: ProfileNFTABI,
@@ -233,13 +254,11 @@ export default function ProfilePage() {
 
       toastSuccess("Profile registered successfully!");
 
-      // Refresh profile after a short delay for indexing
       setTimeout(async () => {
         try {
           const updatedProfile = await getProfile(walletAddress);
           setUser(updatedProfile);
         } catch {
-          // Profile may not be indexed yet
         }
       }, 3000);
     } catch (err) {
@@ -265,7 +284,6 @@ export default function ProfilePage() {
     );
   }
 
-  // Onboarding: wallet not ready or no profile NFT
   if (!hasProfile) {
     return (
       <div className="page-enter">
@@ -285,7 +303,6 @@ export default function ProfilePage() {
         </div>
 
         <div className="px-5 -mt-4 space-y-3">
-          {/* Step 1: Wallet */}
           <Card variant="white">
             <div className="flex items-start gap-3">
               <div
@@ -311,7 +328,7 @@ export default function ProfilePage() {
               {walletAddress && (
                 <button
                   onClick={copyAddress}
-                  className="text-xs text-primary font-medium mt-0.5"
+                  className="text-xs text-primary font-medium mt-0.5 cursor-pointer"
                 >
                   {copied ? "Copied!" : "Copy"}
                 </button>
@@ -319,7 +336,6 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          {/* Step 2: Faucet */}
           <Card variant="white">
             <div className="flex items-start gap-3">
               <div
@@ -361,7 +377,6 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          {/* Step 3: Mint Profile */}
           <Card variant="white">
             <div className="flex items-start gap-3">
               <div
@@ -403,7 +418,6 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          {/* Info box */}
           <div className="bg-primary-50/60 rounded-2xl p-4 mt-2">
             <p className="text-xs text-primary font-medium mb-1">
               Why do I need a profile?
@@ -416,7 +430,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Logout */}
         <div className="px-5 mt-8 pb-8">
           <Button
             variant="ghost"
@@ -434,9 +447,7 @@ export default function ProfilePage() {
 
   return (
     <div className="page-enter">
-      {/* Profile Header — enhanced with gradient */}
       <div className="relative overflow-hidden">
-        {/* Gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
@@ -455,7 +466,7 @@ export default function ProfilePage() {
 
             <button
               onClick={copyAddress}
-              className="flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30"
+              className="flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30 cursor-pointer"
             >
               <span className="text-xs text-white font-mono font-medium">
                 {walletAddress ? truncateAddress(walletAddress) : "---"}
@@ -470,7 +481,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* XP Bar — floating below banner */}
       <div className="px-5 -mt-10 relative z-10">
         <div className="bg-white border border-border-light/50 rounded-2xl p-4 shadow-lg">
           <div className="flex items-center justify-between mb-2">
@@ -501,7 +511,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Quick Actions — soft cards */}
       <div className="px-5 mt-5 flex gap-2.5">
         <Card
           hoverable
@@ -533,7 +542,6 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Tab Navigation — iOS segmented control */}
       <div className="mt-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5">
         {(["stats", "feed", "achievements", "equipped"] as ProfileTab[]).map(
           (tab) => (
@@ -541,7 +549,7 @@ export default function ProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200",
+                "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer",
                 activeTab === tab
                   ? "bg-surface text-text-primary shadow-card"
                   : "text-text-tertiary",
@@ -553,16 +561,14 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Tab Content */}
       <div className="px-5 mt-4 pb-6">
         {activeTab === "stats" && (
           <div className="space-y-3">
-            {/* Streak Overview Cards */}
             <div className="grid grid-cols-2 gap-3">
-              <Card className="!bg-gradient-to-br from-orange-500/10 to-orange-600/5 !border-orange-500/20">
+              <Card className="!bg-gradient-to-br from-primary/10 to-blue-500/5 !border-primary/20">
                 <div className="flex flex-col items-center text-center py-2">
-                  <Flame size={24} className="text-orange-500 mb-2" />
-                  <p className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                  <Flame size={24} className="text-primary mb-2" />
+                  <p className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
                     {currentStreak}
                   </p>
                   <p className="text-[11px] text-text-tertiary mt-1">
@@ -584,7 +590,6 @@ export default function ProfilePage() {
               </Card>
             </div>
 
-            {/* Monthly Streak Calendar */}
             <Card className="!bg-gradient-to-br from-primary/5 to-primary-light/5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -598,7 +603,6 @@ export default function ProfilePage() {
                 </Badge>
               </div>
 
-              {/* Weekday labels */}
               <div className="grid grid-cols-7 gap-1 mb-1.5">
                 {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
                   <div
@@ -610,7 +614,6 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              {/* Calendar grid */}
               <div className="grid grid-cols-7 gap-1.5">
                 {monthlyStreak.calendar.map((day, idx) => (
                   <div
@@ -658,7 +661,6 @@ export default function ProfilePage() {
               </div>
             </Card>
 
-            {/* Stats Cards */}
             <div className="space-y-2.5 mt-4">
               {[
                 {
@@ -669,25 +671,25 @@ export default function ProfilePage() {
                   border: "border-blue-500/20",
                 },
                 {
-                  icon: <Trophy size={18} className="text-green-500" />,
+                  icon: <Trophy size={18} className="text-primary" />,
                   label: "Verified Runs",
                   value: String(displayUser.verifiedRunCount),
-                  gradient: "from-green-500/10 to-green-600/5",
-                  border: "border-green-500/20",
+                  gradient: "from-blue-500/10 to-blue-600/5",
+                  border: "border-blue-500/20",
                 },
                 {
-                  icon: <Flame size={18} className="text-orange-500" />,
+                  icon: <Flame size={18} className="text-primary/70" />,
                   label: "Longest Streak",
                   value: `${displayUser.longestStreakDays} days`,
-                  gradient: "from-orange-500/10 to-orange-600/5",
-                  border: "border-orange-500/20",
+                  gradient: "from-blue-500/10 to-blue-600/5",
+                  border: "border-blue-500/20",
                 },
                 {
-                  icon: <Zap size={18} className="text-yellow-500" />,
+                  icon: <Zap size={18} className="text-blue-400" />,
                   label: "Total XP",
                   value: `${displayUser.exp} XP`,
-                  gradient: "from-yellow-500/10 to-yellow-600/5",
-                  border: "border-yellow-500/20",
+                  gradient: "from-blue-400/10 to-blue-500/5",
+                  border: "border-blue-400/20",
                 },
               ].map((stat) => (
                 <Card
@@ -720,7 +722,6 @@ export default function ProfilePage() {
                 key={activity.id}
                 className="rounded-2xl bg-surface border border-border-light/70 shadow-card overflow-hidden"
               >
-                {/* Header: avatar + name + time + location */}
                 <div className="px-4 pt-3.5 pb-2 flex items-center gap-3">
                   <div
                     className={cn(
@@ -741,12 +742,10 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {/* Map placeholder */}
                 <div className="mx-4 h-32 rounded-xl bg-gradient-to-br from-primary/5 to-blue-500/10 flex items-center justify-center">
                   <MapPin size={24} className="text-primary/30" />
                 </div>
 
-                {/* Stats row */}
                 <div className="px-4 py-3 flex items-center divide-x divide-border-light/50">
                   <div className="flex-1 text-center">
                     <p className="text-sm font-bold text-text-primary">
@@ -779,11 +778,62 @@ export default function ProfilePage() {
         )}
 
         {activeTab === "achievements" && (
-          <EmptyState
-            icon={<Award size={36} />}
-            title="No achievements yet"
-            description="Complete events to earn achievement NFTs"
-          />
+          <>
+            {achievements.length === 0 ? (
+              <EmptyState
+                icon={<Award size={36} />}
+                title="No achievements yet"
+                description="Complete events to earn achievement NFTs"
+              />
+            ) : (
+              <div className="space-y-3">
+                {achievements.map((ach, idx) => {
+                  const tierLabels = ["", "Bronze", "Silver", "Gold", "Platinum", "Diamond"];
+                  const tierColors = ["", "#CD7F32", "#C0C0C0", "#FFD700", "#E5E4E2", "#B9F2FF"];
+                  const tierGradients = [
+                    "",
+                    "from-amber-600/15 to-amber-400/5",
+                    "from-gray-400/15 to-gray-300/5",
+                    "from-yellow-500/15 to-yellow-400/5",
+                    "from-slate-300/15 to-slate-200/5",
+                    "from-cyan-400/15 to-cyan-300/5",
+                  ];
+                  const t = ach.tier >= 1 && ach.tier <= 5 ? ach.tier : 1;
+                  const unlockDate = new Date(Number(ach.unlockedAt) * 1000);
+
+                  return (
+                    <div
+                      key={ach.eventIdHex}
+                      className={cn(
+                        "stagger-item rounded-2xl border p-4 shadow-card flex items-center gap-4",
+                        `bg-gradient-to-br ${tierGradients[t]} border-border-light/60`,
+                      )}
+                      style={{ animationDelay: `${idx * 80}ms` }}
+                    >
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `${tierColors[t]}22` }}
+                      >
+                        <Award size={24} style={{ color: tierColors[t] }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-text-primary">
+                          Tier {t} — {tierLabels[t]}
+                        </p>
+                        <p className="text-[11px] text-text-tertiary mt-0.5">
+                          Unlocked {unlockDate.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
 
         {activeTab === "equipped" && (
@@ -795,7 +845,6 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Logout — subtle */}
       <div className="px-5 pb-8">
         <Button
           variant="ghost"

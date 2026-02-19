@@ -1,8 +1,3 @@
-// ============================================
-// API Client
-// Integrated with Runera Backend API
-// ============================================
-
 import { generateDeviceHash } from './utils/device';
 import type {
   UserProfile,
@@ -12,11 +7,7 @@ import type {
 } from './types';
 import { getProfileData, getProfileTokenId, getProfileTier } from './contracts/profile';
 
-// Use Next.js rewrite proxy to bypass CORS
-// Browser requests go to /api/backend/... → Next.js forwards to Railway backend
 const API_PROXY_BASE = '/api/backend';
-
-// --- Helpers ---
 
 async function apiFetch<T>(
   path: string,
@@ -41,9 +32,6 @@ async function apiFetch<T>(
   return res.json();
 }
 
-// --- Auth ---
-// Optional: Most endpoints don't require auth for MVP
-
 export async function requestAuthNonce(walletAddress: string): Promise<{ nonce: string; message: string }> {
   return apiFetch('/auth/nonce', {
     method: 'POST',
@@ -62,24 +50,18 @@ export async function connectWallet(
   });
 }
 
-// --- Profile ---
-
-// Map tier name string to TierLevel number
 const TIER_NAME_MAP: Record<string, TierLevel> = {
   Bronze: 1, Silver: 2, Gold: 3, Platinum: 4, Diamond: 5,
 };
 
-// Helper: extract value from NFT metadata attributes array
 function getAttr(attributes: Array<{ trait_type: string; value: any }>, name: string): any {
   return attributes?.find((a) => a.trait_type === name)?.value;
 }
 
 export async function getProfile(walletAddress: string): Promise<UserProfile | null> {
-  // Try backend first — returns NFT metadata format with attributes array
   try {
     const res = await apiFetch<any>(`/profile/${walletAddress}/metadata`);
 
-    // Backend returns { name, description, image, attributes: [...] }
     if (res.attributes && Array.isArray(res.attributes)) {
       const tierStr = getAttr(res.attributes, 'Tier') || 'Bronze';
       const distanceKm = Number(getAttr(res.attributes, 'Total Distance (km)')) || 0;
@@ -94,18 +76,15 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
         verifiedRunCount: Number(getAttr(res.attributes, 'Runs')) || 0,
         totalDistanceMeters: Math.round(distanceKm * 1000),
         longestStreakDays: Number(getAttr(res.attributes, 'Longest Streak (days)')) || 0,
-        profileTokenId: 1, // metadata exists → profile is minted
+        profileTokenId: 1,
         onchainNonce: 0,
       };
     }
 
-    // Fallback: maybe backend returns flat profile object in the future
     return res.profile || res;
   } catch {
-    // Backend failed (404 or error) — fall through to SC fallback
   }
 
-  // Fallback: read directly from smart contract
   try {
     const address = walletAddress as `0x${string}`;
     const [profileData, tokenId, tier] = await Promise.all([
@@ -134,8 +113,6 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
   }
 }
 
-// --- Runs ---
-
 export async function submitRun(
   payload: RunSubmitPayload,
   token?: string
@@ -147,7 +124,6 @@ export async function submitRun(
   reasonCode?: string;
   message?: string;
 }> {
-  // Add device fingerprint to payload
   const deviceHash = generateDeviceHash();
   const enrichedPayload = {
     ...payload,
@@ -194,8 +170,6 @@ export async function syncProgress(
     token,
   });
 }
-
-// --- Events ---
 
 export async function getEvents(
   walletAddress?: string
@@ -252,8 +226,6 @@ export async function claimAchievement(
   });
 }
 
-// --- Faucet ---
-
 export async function requestFaucet(
   walletAddress: string
 ): Promise<{
@@ -269,5 +241,4 @@ export async function requestFaucet(
   });
 }
 
-// Re-export for convenience
 export { apiFetch };

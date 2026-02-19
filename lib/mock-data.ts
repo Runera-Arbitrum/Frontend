@@ -1,8 +1,3 @@
-// ============================================
-// Mock Data for Development / Testing
-// Will be replaced with real API calls
-// ============================================
-
 import type {
   UserProfile,
   Run,
@@ -169,7 +164,6 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
   },
 ];
 
-// Weekly distance data for chart
 export const MOCK_WEEKLY_DISTANCES = [
   { day: 'Mon', meters: 5230 },
   { day: 'Tue', meters: 0 },
@@ -180,7 +174,6 @@ export const MOCK_WEEKLY_DISTANCES = [
   { day: 'Sun', meters: 0 },
 ];
 
-// Activity Feed — dummy data (no DB table exists)
 export interface FeedActivity {
   id: string;
   user: { name: string; initial: string; avatarColor: string };
@@ -193,8 +186,8 @@ export interface FeedActivity {
 
 export const MOCK_ACTIVITY_FEED: FeedActivity[] = [
   { id: 'feed-001', user: { name: 'Alex R.', initial: 'A', avatarColor: 'bg-blue-500' }, distanceMeters: 5230, durationSeconds: 1620, avgPaceSeconds: 310, timestamp: '2026-02-17T07:30:00Z', location: 'Central Park' },
-  { id: 'feed-002', user: { name: 'Maya K.', initial: 'M', avatarColor: 'bg-purple-500' }, distanceMeters: 10450, durationSeconds: 3540, avgPaceSeconds: 339, timestamp: '2026-02-17T06:00:00Z', location: 'Riverside Trail' },
-  { id: 'feed-003', user: { name: 'Jordan T.', initial: 'J', avatarColor: 'bg-green-500' }, distanceMeters: 3100, durationSeconds: 1080, avgPaceSeconds: 348, timestamp: '2026-02-16T18:45:00Z', location: 'Harbor Loop' },
-  { id: 'feed-004', user: { name: 'Sam W.', initial: 'S', avatarColor: 'bg-orange-500' }, distanceMeters: 8200, durationSeconds: 2880, avgPaceSeconds: 351, timestamp: '2026-02-16T06:15:00Z' },
-  { id: 'feed-005', user: { name: 'Riley N.', initial: 'R', avatarColor: 'bg-pink-500' }, distanceMeters: 21097, durationSeconds: 7200, avgPaceSeconds: 341, timestamp: '2026-02-15T05:30:00Z', location: 'City Marathon Route' },
+  { id: 'feed-002', user: { name: 'Maya K.', initial: 'M', avatarColor: 'bg-blue-400' }, distanceMeters: 10450, durationSeconds: 3540, avgPaceSeconds: 339, timestamp: '2026-02-17T06:00:00Z', location: 'Riverside Trail' },
+  { id: 'feed-003', user: { name: 'Jordan T.', initial: 'J', avatarColor: 'bg-blue-600' }, distanceMeters: 3100, durationSeconds: 1080, avgPaceSeconds: 348, timestamp: '2026-02-16T18:45:00Z', location: 'Harbor Loop' },
+  { id: 'feed-004', user: { name: 'Sam W.', initial: 'S', avatarColor: 'bg-blue-500' }, distanceMeters: 8200, durationSeconds: 2880, avgPaceSeconds: 351, timestamp: '2026-02-16T06:15:00Z' },
+  { id: 'feed-005', user: { name: 'Riley N.', initial: 'R', avatarColor: 'bg-blue-300' }, distanceMeters: 21097, durationSeconds: 7200, avgPaceSeconds: 341, timestamp: '2026-02-15T05:30:00Z', location: 'City Marathon Route' },
 ];

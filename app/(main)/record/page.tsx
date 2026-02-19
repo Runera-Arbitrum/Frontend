@@ -57,7 +57,6 @@ export default function RecordPage() {
   const [demoDistance, setDemoDistance] = useState<number | null>(null);
   const geo = useGeolocation();
 
-  // Check if user has a profile NFT
   useEffect(() => {
     if (!walletAddress) return;
     getProfile(walletAddress)
@@ -65,21 +64,18 @@ export default function RecordPage() {
       .catch(() => setHasProfile(false));
   }, [walletAddress]);
 
-  // Validation steps
   const [validateSteps, setValidateSteps] = useState<ValidateStep[]>([
     { label: "Upload data packet", status: "pending" },
     { label: "Verify GPS path", status: "pending" },
     { label: "Approve score", status: "pending" },
   ]);
 
-  // Timer
   useEffect(() => {
     if (state !== "running") return;
     const interval = setInterval(() => setElapsed((p) => p + 1), 1000);
     return () => clearInterval(interval);
   }, [state]);
 
-  // Use demo distance when available, otherwise real geo distance
   const effectiveDistance = demoDistance ?? geo.totalDistanceMeters;
 
   const pace =
@@ -93,7 +89,6 @@ export default function RecordPage() {
       ? (effectiveDistance / 1000 / (elapsed / 3600)).toFixed(1)
       : "0.0";
 
-  // --- Handlers ---
   const handleStart = useCallback(() => {
     if (hasProfile === false) {
       setShowProfileModal(true);
@@ -106,7 +101,6 @@ export default function RecordPage() {
     setRunStartTime(new Date().toISOString());
     geo.resetPath();
     geo.startTracking();
-    // Hide bottom nav while recording
     if (typeof window !== "undefined") {
       window.localStorage.setItem("runera_recording", "true");
       window.dispatchEvent(new Event("storage"));
@@ -165,7 +159,6 @@ export default function RecordPage() {
     setElapsed(0);
     setDemoDistance(null);
     geo.resetPath();
-    // Show bottom nav again
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("runera_recording");
       window.dispatchEvent(new Event("storage"));
@@ -177,7 +170,6 @@ export default function RecordPage() {
       setShowProfileModal(true);
       return;
     }
-    // Simulate a 3.2km run in 18 minutes
     const fakeDist = 3200;
     const fakeDur = 1080;
     setElapsed(fakeDur);
@@ -261,14 +253,12 @@ export default function RecordPage() {
     geo.path,
   ]);
 
-  // --- IDLE ---
   if (state === "idle") {
     return (
       <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        {/* Top bar */}
         <div className="px-5 pt-4 pb-2 flex items-center justify-between">
           <div className="w-8" />
-          <button className="flex items-center gap-1.5 bg-surface-tertiary px-3 py-1.5 rounded-full">
+          <button className="flex items-center gap-1.5 bg-surface-tertiary px-3 py-1.5 rounded-full cursor-pointer">
             <span className="w-2 h-2 rounded-full bg-success" />
             <span className="text-xs font-medium text-text-secondary">
               READY
@@ -278,7 +268,6 @@ export default function RecordPage() {
           <div className="w-8" />
         </div>
 
-        {/* Big timer & distance */}
         <div className="flex-1 flex flex-col items-center justify-center px-8">
           <p className="text-[11px] text-primary font-medium uppercase tracking-wider mb-1">
             Time Elapsed
@@ -297,23 +286,21 @@ export default function RecordPage() {
           </div>
         </div>
 
-        {/* Start button — shoe icon */}
         <div className="flex flex-col items-center gap-4 pb-8">
           <button
             onClick={handleStart}
-            className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
+            className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <Footprints size={30} className="text-white" strokeWidth={2} />
           </button>
           <button
             onClick={handleDemoRun}
-            className="text-xs text-text-tertiary underline underline-offset-2"
+            className="text-xs text-text-tertiary underline underline-offset-2 cursor-pointer"
           >
             Try Demo Run
           </button>
         </div>
 
-        {/* Profile required modal */}
         <Modal
           open={showProfileModal}
           onClose={() => setShowProfileModal(false)}
@@ -344,18 +331,15 @@ export default function RecordPage() {
     );
   }
 
-  // --- RUNNING ---
   if (state === "running") {
     return (
       <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        {/* Top bar with view toggle */}
         <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-          {/* View toggle */}
           <div className="flex items-center bg-surface-tertiary rounded-full p-0.5">
             <button
               onClick={() => setRunView("stats")}
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200",
+                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                 runView === "stats"
                   ? "bg-primary text-white"
                   : "text-text-tertiary",
@@ -366,7 +350,7 @@ export default function RecordPage() {
             <button
               onClick={() => setRunView("map")}
               className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200",
+                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                 runView === "map"
                   ? "bg-primary text-white"
                   : "text-text-tertiary",
@@ -376,7 +360,6 @@ export default function RecordPage() {
             </button>
           </div>
 
-          {/* Status badge */}
           <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-semibold text-primary">RUNNING</span>
@@ -385,7 +368,6 @@ export default function RecordPage() {
           <div className="w-[72px]" />
         </div>
 
-        {/* Map view */}
         {runView === "map" ? (
           <>
             <div className="flex-1 relative">
@@ -394,7 +376,6 @@ export default function RecordPage() {
                 path={geo.path}
                 isTracking={true}
               />
-              {/* GPS indicator */}
               {geo.position && (
                 <div className="absolute top-3 right-3 z-10">
                   <div className="flex items-center gap-1.5 bg-success text-white px-2.5 py-1 rounded-full text-[11px] font-medium shadow-soft">
@@ -404,18 +385,16 @@ export default function RecordPage() {
                 </div>
               )}
 
-              {/* Chevron button to show stats */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
                 <button
                   onClick={() => setRunView("stats")}
-                  className="w-12 h-12 rounded-full bg-surface/90 backdrop-blur-sm border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95"
+                  className="w-12 h-12 rounded-full bg-surface/90 backdrop-blur-sm border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
                 >
                   <ChevronDown size={20} className="text-text-secondary" />
                 </button>
               </div>
             </div>
 
-            {/* Bottom stats overlay */}
             <div className="bg-surface border-t border-border-light">
               <div className="px-5 py-3">
                 <div className="flex items-center justify-between">
@@ -450,7 +429,6 @@ export default function RecordPage() {
             </div>
           </>
         ) : (
-          /* Stats view */
           <div className="flex-1 flex flex-col items-center justify-center px-8 relative">
             <p className="text-[11px] text-error font-medium uppercase tracking-wider mb-1">
               Time Elapsed
@@ -468,7 +446,6 @@ export default function RecordPage() {
               </p>
             </div>
 
-            {/* Pace & Speed row */}
             <div className="flex items-center gap-8 mt-8">
               <div className="text-center">
                 <p className="text-lg font-light text-text-primary">
@@ -488,27 +465,25 @@ export default function RecordPage() {
               </div>
             </div>
 
-            {/* Chevron button to show map */}
             <button
               onClick={() => setRunView("map")}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-surface-tertiary border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95"
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-surface-tertiary border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <ChevronUp size={20} className="text-text-secondary" />
             </button>
           </div>
         )}
 
-        {/* Control buttons */}
         <div className="flex items-center justify-center gap-5 py-5 bg-surface">
           <button
             onClick={handleStop}
-            className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95"
+            className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <Square size={20} fill="white" className="text-white" />
           </button>
           <button
             onClick={handlePause}
-            className="w-14 h-14 rounded-full bg-warning flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95"
+            className="w-14 h-14 rounded-full bg-warning flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <Pause size={20} fill="white" className="text-white" />
           </button>
@@ -517,15 +492,12 @@ export default function RecordPage() {
     );
   }
 
-  // --- PAUSED (with map) ---
   if (state === "paused") {
     return (
       <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        {/* Map */}
         <div className="flex-1 relative">
           <RunMap position={geo.position} path={geo.path} isTracking={false} />
 
-          {/* Paused indicator */}
           <div className="absolute top-4 right-4 z-10">
             <div className="flex items-center gap-1.5 bg-warning text-white px-2.5 py-1 rounded-full text-[11px] font-medium shadow-soft">
               <Pause size={10} />
@@ -534,7 +506,6 @@ export default function RecordPage() {
           </div>
         </div>
 
-        {/* Bottom stats overlay */}
         <div className="bg-surface border-t border-border-light">
           <div className="px-5 py-3">
             <div className="flex items-center justify-between">
@@ -563,17 +534,16 @@ export default function RecordPage() {
             </div>
           </div>
 
-          {/* Control buttons */}
           <div className="flex items-center justify-center gap-5 py-5">
             <button
               onClick={handleStop}
-              className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95"
+              className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <Square size={20} fill="white" className="text-white" />
             </button>
             <button
               onClick={handleResume}
-              className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
+              className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
             >
               <Play size={20} fill="white" className="text-white ml-0.5" />
             </button>
@@ -583,7 +553,6 @@ export default function RecordPage() {
     );
   }
 
-  // --- VALIDATING ---
   if (state === "validating") {
     return (
       <div className="page-enter flex flex-col items-center justify-center h-screen px-10">
@@ -598,7 +567,6 @@ export default function RecordPage() {
           Checking GPS integrity and synchronizing with anti-cheat protocols.
         </p>
 
-        {/* Steps */}
         <div className="w-full max-w-xs mx-auto space-y-4">
           {validateSteps.map((step, i) => (
             <div key={i} className={cn(
@@ -636,12 +604,10 @@ export default function RecordPage() {
     );
   }
 
-  // --- SUMMARY ---
   return (
     <div className="page-enter flex flex-col h-[calc(100dvh-6rem)] overflow-y-auto">
-      {/* Header */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-        <button onClick={handleReset} className="p-1">
+        <button onClick={handleReset} className="p-1 cursor-pointer">
           <ArrowLeft size={20} className="text-text-secondary" />
         </button>
         <span className="text-sm font-semibold text-text-primary">Summary</span>
@@ -649,7 +615,6 @@ export default function RecordPage() {
       </div>
 
       <div className="flex-1 px-5 pt-4">
-        {/* Title */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-semibold text-text-primary">
             Great Job!
@@ -657,7 +622,6 @@ export default function RecordPage() {
           <p className="text-sm text-text-tertiary mt-1">Run completed</p>
         </div>
 
-        {/* Big distance */}
         <div className="text-center mb-6">
           <div className="flex items-baseline justify-center gap-2">
             <span className="text-[11px] text-text-tertiary uppercase">
@@ -672,7 +636,6 @@ export default function RecordPage() {
           </p>
         </div>
 
-        {/* Stats grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <SummaryStat
             icon={<Clock size={16} />}
@@ -692,7 +655,6 @@ export default function RecordPage() {
           <SummaryStat icon={<Flame size={16} />} label="Calories" value="0" />
         </div>
 
-        {/* XP earned */}
         <Card className="flex items-center gap-3 !bg-primary-50 !border-primary-100 mb-6">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
             <Zap size={18} className="text-primary" />
@@ -704,7 +666,6 @@ export default function RecordPage() {
         </Card>
       </div>
 
-      {/* Bottom action */}
       <div className="px-5 pb-6">
         <Button
           variant="primary"
