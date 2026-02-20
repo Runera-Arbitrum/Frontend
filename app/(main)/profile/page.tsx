@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import {
   User,
+  ArrowLeft,
   LogOut,
   Copy,
   Check,
@@ -56,49 +57,6 @@ type ProfileTab = "stats" | "feed" | "achievements" | "equipped";
 interface AchievementWithEvent extends AchievementData {
   eventIdHex: Hex;
 }
-
-const getMonthlyStreakData = (runs: Run[]) => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
-
-  const calendar: (null | {
-    day: number;
-    hasRun: boolean;
-    isToday: boolean;
-    isPast: boolean;
-  })[] = [];
-
-  for (let i = 0; i < firstDay; i++) {
-    calendar.push(null);
-  }
-
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day);
-    const isPast = date <= today;
-    const dateStr = date.toISOString().split("T")[0];
-
-    const hasRun = runs.some((run) => {
-      const runDate = new Date(run.startTime).toISOString().split("T")[0];
-      return runDate === dateStr && run.status === "VERIFIED";
-    });
-
-    calendar.push({
-      day,
-      hasRun,
-      isToday: day === today.getDate(),
-      isPast,
-    });
-  }
-
-  return {
-    monthName: today.toLocaleString("default", { month: "long" }),
-    year,
-    calendar,
-  };
-};
 
 export default function ProfilePage() {
   const { walletAddress, activeWallet, walletReady, logout } = useAuth();
@@ -167,9 +125,6 @@ export default function ProfilePage() {
     longestStreakDays: 0,
     profileTokenId: null,
   };
-
-  const monthlyStreak = getMonthlyStreakData(runs);
-  const thisMonthRuns = monthlyStreak.calendar.filter((d) => d?.hasRun).length;
 
   const calculateCurrentStreak = (): number => {
     const verifiedRuns = runs
@@ -258,8 +213,7 @@ export default function ProfilePage() {
         try {
           const updatedProfile = await getProfile(walletAddress);
           setUser(updatedProfile);
-        } catch {
-        }
+        } catch {}
       }, 3000);
     } catch (err) {
       toastError(
@@ -451,6 +405,19 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
+        {/* Glassmorphism Navbar */}
+        <div className="absolute top-0 inset-x-0 z-20 px-5 py-4 flex items-center justify-between">
+          <a
+            href="/home"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white transition-transform active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft size={20} />
+          </a>
+          <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white transition-transform active:scale-95 cursor-pointer">
+            <Settings size={20} />
+          </button>
+        </div>
+
         <div className="relative px-5 pt-12 pb-14">
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-white/90 flex items-center justify-center mb-3 ring-4 ring-white/20 shadow-lg">
@@ -564,100 +531,15 @@ export default function ProfilePage() {
       <div className="px-5 mt-4 pb-6">
         {activeTab === "stats" && (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="!bg-gradient-to-br from-primary/10 to-blue-500/5 !border-primary/20">
-                <div className="flex flex-col items-center text-center py-2">
-                  <Flame size={24} className="text-primary mb-2" />
-                  <p className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-                    {currentStreak}
-                  </p>
-                  <p className="text-[11px] text-text-tertiary mt-1">
-                    Current Streak
-                  </p>
-                </div>
-              </Card>
-
-              <Card className="!bg-gradient-to-br from-blue-500/10 to-blue-600/5 !border-blue-500/20">
-                <div className="flex flex-col items-center text-center py-2">
-                  <Target size={24} className="text-blue-500 mb-2" />
-                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-                    {thisMonthRuns}
-                  </p>
-                  <p className="text-[11px] text-text-tertiary mt-1">
-                    Runs This Month
-                  </p>
-                </div>
-              </Card>
-            </div>
-
-            <Card className="!bg-gradient-to-br from-primary/5 to-primary-light/5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-primary" />
-                  <p className="text-sm font-semibold text-text-primary">
-                    {monthlyStreak.monthName} {monthlyStreak.year}
-                  </p>
-                </div>
-                <Badge variant="blue" className="text-[10px] px-2 py-0.5">
-                  {thisMonthRuns} runs
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1 mb-1.5">
-                {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
-                  <div
-                    key={idx}
-                    className="text-center text-[10px] text-text-tertiary font-medium"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-7 gap-1.5">
-                {monthlyStreak.calendar.map((day, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      "aspect-square rounded-lg flex items-center justify-center text-[11px] font-medium transition-all",
-                      !day && "invisible",
-                      day?.hasRun &&
-                        "bg-gradient-to-br from-primary to-blue-500 text-white shadow-sm scale-105",
-                      day?.isToday &&
-                        !day?.hasRun &&
-                        "bg-surface-tertiary ring-2 ring-primary text-text-primary",
-                      day &&
-                        !day.hasRun &&
-                        !day.isToday &&
-                        day.isPast &&
-                        "bg-surface-tertiary text-text-tertiary/40",
-                      day &&
-                        !day.isPast &&
-                        "bg-surface-tertiary/40 text-text-tertiary/30",
-                    )}
-                  >
-                    {day?.hasRun ? (
-                      <Check size={12} strokeWidth={3} />
-                    ) : (
-                      day?.day
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-border-light/30">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-gradient-to-br from-primary to-blue-500" />
-                  <span className="text-[10px] text-text-tertiary">
-                    Completed
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-surface-tertiary" />
-                  <span className="text-[10px] text-text-tertiary">
-                    Rest Day
-                  </span>
-                </div>
+            <Card className="!bg-gradient-to-br from-primary/10 to-blue-500/5 !border-primary/20">
+              <div className="flex flex-col items-center text-center py-2">
+                <Flame size={24} className="text-primary mb-2" />
+                <p className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
+                  {currentStreak}
+                </p>
+                <p className="text-[11px] text-text-tertiary mt-1">
+                  Current Streak
+                </p>
               </div>
             </Card>
 
@@ -788,8 +670,22 @@ export default function ProfilePage() {
             ) : (
               <div className="space-y-3">
                 {achievements.map((ach, idx) => {
-                  const tierLabels = ["", "Bronze", "Silver", "Gold", "Platinum", "Diamond"];
-                  const tierColors = ["", "#CD7F32", "#C0C0C0", "#FFD700", "#E5E4E2", "#B9F2FF"];
+                  const tierLabels = [
+                    "",
+                    "Bronze",
+                    "Silver",
+                    "Gold",
+                    "Platinum",
+                    "Diamond",
+                  ];
+                  const tierColors = [
+                    "",
+                    "#CD7F32",
+                    "#C0C0C0",
+                    "#FFD700",
+                    "#E5E4E2",
+                    "#B9F2FF",
+                  ];
                   const tierGradients = [
                     "",
                     "from-amber-600/15 to-amber-400/5",
@@ -821,7 +717,8 @@ export default function ProfilePage() {
                           Tier {t} — {tierLabels[t]}
                         </p>
                         <p className="text-[11px] text-text-tertiary mt-0.5">
-                          Unlocked {unlockDate.toLocaleDateString("en-US", {
+                          Unlocked{" "}
+                          {unlockDate.toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",

@@ -222,7 +222,10 @@ export default function RecordPage() {
         endTime: new Date().toISOString(),
         avgPaceSeconds: pace,
         deviceHash: "",
-        path: geo.path.length > 0 ? geo.path : [{ lat: -6.2, lng: 106.8, timestamp: Date.now() }],
+        path:
+          geo.path.length > 0
+            ? geo.path
+            : [{ lat: -6.2, lng: 106.8, timestamp: Date.now() }],
       });
 
       if (result.success && result.status === "VERIFIED") {
@@ -289,7 +292,7 @@ export default function RecordPage() {
         <div className="flex flex-col items-center gap-4 pb-8">
           <button
             onClick={handleStart}
-            className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
+            className="streak-pulse w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
           >
             <Footprints size={30} className="text-white" strokeWidth={2} />
           </button>
@@ -361,7 +364,7 @@ export default function RecordPage() {
           </div>
 
           <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-primary streak-pulse" />
             <span className="text-xs font-semibold text-primary">RUNNING</span>
           </div>
 
@@ -569,10 +572,13 @@ export default function RecordPage() {
 
         <div className="w-full max-w-xs mx-auto space-y-4">
           {validateSteps.map((step, i) => (
-            <div key={i} className={cn(
-              "flex items-center justify-center gap-3 transition-opacity duration-500",
-              step.status === "done" && "opacity-50",
-            )}>
+            <div
+              key={i}
+              className={cn(
+                "flex items-center justify-center gap-3 transition-opacity duration-500",
+                step.status === "done" && "opacity-50",
+              )}
+            >
               <div className="w-6 h-6 flex items-center justify-center">
                 {step.status === "done" ? (
                   <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">

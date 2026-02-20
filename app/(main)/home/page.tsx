@@ -223,138 +223,169 @@ export default function HomePage() {
           </div>
           <TierBadge tier={displayUser.tier as TierLevel} />
         </div>
-      </div>
+        {/* Hero Streak Section */}
+        <div className="px-5 mt-5">
+          <div className="relative overflow-hidden rounded-[32px] bg-white border border-border-light shadow-card p-6 text-center">
+            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/5 to-transparent" />
 
-      <div className="px-5 mt-5 mb-6">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setShowStreakModal(true)}
-            className="text-left row-span-2 cursor-pointer"
-          >
-            <div className="h-full rounded-3xl bg-gradient-to-br from-primary/10 via-blue-400/5 to-blue-500/10 border border-primary/15 p-4 flex flex-col justify-between shadow-card relative overflow-hidden">
-              <div className="relative">
-                <div className="streak-pulse w-10 h-10 rounded-full bg-gradient-to-br from-primary/15 to-blue-500/10 flex items-center justify-center mb-3">
-                  <Flame
-                    size={20}
-                    className="text-primary"
-                    fill="currentColor"
-                    strokeWidth={1.5}
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="streak-pulse mb-4 p-5 bg-primary/10 rounded-full">
+                <Flame size={32} className="text-primary" fill="currentColor" />
+              </div>
+
+              <h2 className="text-6xl font-bold text-text-primary tracking-tight mb-1">
+                {currentStreak}
+              </h2>
+              <p className="text-lg font-semibold text-text-primary">
+                Week Streak
+              </p>
+              <p className="text-sm text-text-tertiary mb-6">
+                You are doing really great!
+              </p>
+
+              {/* Weekly Indicators */}
+              <div className="flex items-center justify-center gap-2.5">
+                {(() => {
+                  const today = new Date();
+                  const days = [];
+                  for (let i = 6; i >= 0; i--) {
+                    const d = new Date(today);
+                    d.setDate(today.getDate() - i);
+                    days.push(d);
+                  }
+                  return days.map((date, idx) => {
+                    const isToday = idx === 6;
+                    const dateStr = date.toISOString().split("T")[0];
+                    const hasRun = runs.some(
+                      (r) =>
+                        r.status === "VERIFIED" &&
+                        new Date(r.startTime).toISOString().split("T")[0] ===
+                          dateStr,
+                    );
+                    const dayLetter = date.toLocaleDateString("en-US", {
+                      weekday: "narrow",
+                    });
+
+                    return (
+                      <div
+                        key={idx}
+                        className="flex flex-col items-center gap-1.5"
+                      >
+                        <span className="text-[10px] text-text-tertiary font-medium">
+                          {dayLetter}
+                        </span>
+                        <div
+                          className={cn(
+                            "w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-300",
+                            hasRun
+                              ? "bg-primary text-white shadow-gentle scale-105"
+                              : isToday
+                                ? "bg-surface-tertiary border border-primary/30 text-text-primary"
+                                : "bg-surface-tertiary text-text-tertiary/40",
+                          )}
+                        >
+                          {hasRun ? (
+                            <Check size={14} strokeWidth={3} />
+                          ) : (
+                            date.getDate()
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Bento Grid */}
+        <div className="px-5 mt-5 mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total Distance */}
+            <div className="rounded-3xl bg-surface border border-border-light p-4 shadow-card">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-3">
+                <MapPin size={20} className="text-blue-500" />
+              </div>
+              <p className="text-2xl font-bold text-text-primary">
+                {formatDistance(displayUser.totalDistanceMeters)}
+              </p>
+              <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
+                Total Distance
+              </p>
+            </div>
+
+            {/* Level Progress */}
+            <div className="rounded-3xl bg-surface border border-border-light p-4 shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <TierBadge
+                    tier={displayUser.tier as TierLevel}
+                    className="scale-75"
                   />
                 </div>
-                <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">
-                  Current Streak
-                </p>
-              </div>
-              <div className="relative">
-                <p className="text-4xl font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-                  {currentStreak}
-                </p>
-                <p className="text-xs text-text-tertiary mt-0.5">days</p>
-              </div>
-            </div>
-          </button>
-
-          <div className="rounded-3xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/15 p-4 shadow-card">
-            <MapPin size={18} className="text-blue-500 mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {formatDistance(displayUser.totalDistanceMeters)}
-            </p>
-            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
-              Total Distance
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-gradient-to-br from-blue-400/10 to-blue-500/5 border border-blue-400/15 p-4 shadow-card">
-            <Zap size={18} className="text-blue-400 mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {displayUser.verifiedRunCount}
-            </p>
-            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
-              Verified Runs
-            </p>
-          </div>
-
-          <div className="col-span-2 rounded-3xl bg-gradient-to-r from-primary/8 via-primary-light/6 to-blue-400/8 border border-primary/12 p-4 shadow-card">
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-2">
-                <TierBadge tier={displayUser.tier as TierLevel} />
-                <span className="text-sm font-semibold text-text-primary">
-                  Level {displayUser.level}
+                <span className="text-xs font-bold text-primary">
+                  Lvl {displayUser.level}
                 </span>
               </div>
-              <span className="text-xs text-text-tertiary">
-                {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL} XP
-              </span>
-            </div>
-            <div className="w-full h-2.5 rounded-full bg-primary-100/60 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700 ease-out"
-                style={{ width: `${levelProgress}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="rounded-3xl bg-gradient-to-br from-primary/10 to-blue-600/5 border border-primary/15 p-4 shadow-card">
-            <Trophy size={18} className="text-primary mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {user?.profileTokenId ? "1" : "0"}
-            </p>
-            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
-              Collectibles
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-gradient-to-br from-blue-300/10 to-blue-400/5 border border-blue-300/15 p-4 shadow-card">
-            <Flame size={18} className="text-blue-400 mb-2" />
-            <p className="text-2xl font-bold text-text-primary">
-              {displayUser.longestStreakDays}
-            </p>
-            <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
-              Best Streak
-            </p>
-          </div>
-
-          <div className="col-span-2 rounded-3xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
-            <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-text-primary">
-                Latest Run
-              </span>
-              <button className="text-[11px] text-primary font-medium flex items-center gap-0.5 cursor-pointer">
-                All runs <ChevronRight size={12} />
-              </button>
-            </div>
-            {runs.length === 0 ? (
-              <div className="px-4 pb-4 text-center">
-                <p className="text-xs text-text-tertiary py-4">
-                  No runs yet. Start running!
-                </p>
-              </div>
-            ) : (
-              <div className="px-4 pb-3.5">
-                {runs.slice(0, 2).map((run) => (
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] text-text-tertiary">
+                  <span>XP</span>
+                  <span>
+                    {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL}
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-surface-tertiary overflow-hidden">
                   <div
-                    key={run.id}
-                    className="flex items-center justify-between py-2.5 border-t border-border-light/50 first:border-t-0"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                        <TrendingUp size={15} className="text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">
-                          {formatDistance(run.distanceMeters)}
-                        </p>
-                        <p className="text-[11px] text-text-tertiary">
-                          {formatDuration(run.durationSeconds)} ·{" "}
-                          {formatPace(run.avgPaceSeconds)}
-                        </p>
-                      </div>
-                    </div>
-                    <StatusBadge status={run.status} />
-                  </div>
-                ))}
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${levelProgress}%` }}
+                  />
+                </div>
               </div>
-            )}
+            </div>
+
+            <div className="col-span-2 rounded-3xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
+              <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-text-primary">
+                  Latest Run
+                </span>
+                <button className="text-[11px] text-primary font-medium flex items-center gap-0.5 cursor-pointer">
+                  All runs <ChevronRight size={12} />
+                </button>
+              </div>
+              {runs.length === 0 ? (
+                <div className="px-4 pb-4 text-center">
+                  <p className="text-xs text-text-tertiary py-4">
+                    No runs yet. Start running!
+                  </p>
+                </div>
+              ) : (
+                <div className="px-4 pb-3.5">
+                  {runs.slice(0, 2).map((run) => (
+                    <div
+                      key={run.id}
+                      className="flex items-center justify-between py-2.5 border-t border-border-light/50 first:border-t-0"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                          <TrendingUp size={15} className="text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-text-primary">
+                            {formatDistance(run.distanceMeters)}
+                          </p>
+                          <p className="text-[11px] text-text-tertiary">
+                            {formatDuration(run.durationSeconds)} ·{" "}
+                            {formatPace(run.avgPaceSeconds)}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge status={run.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
