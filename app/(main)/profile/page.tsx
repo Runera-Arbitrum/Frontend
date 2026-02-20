@@ -129,16 +129,23 @@ export default function ProfilePage() {
 
     let streak = 0;
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+
+    const isSameDay = (d1: Date, d2: Date) => {
+      return (
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate()
+      );
+    };
 
     for (let i = 0; i <= 365; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() - i);
-      const dateStr = checkDate.toISOString().split("T")[0];
-      const hasRun = verifiedRuns.some(
-        (run) =>
-          new Date(run.startTime).toISOString().split("T")[0] === dateStr,
+
+      const hasRun = verifiedRuns.some((run) =>
+        isSameDay(new Date(run.startTime), checkDate),
       );
+
       if (hasRun) streak++;
       else if (i > 0) break;
     }

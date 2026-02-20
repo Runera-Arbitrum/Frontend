@@ -73,21 +73,29 @@ const calculateCurrentStreak = (runs: Run[]): number => {
   if (verifiedRuns.length === 0) return 0;
 
   let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = new Date(); // Local time
+
+  // Helper to check if two dates are the same local day
+  const isSameDay = (d1: Date, d2: Date) => {
+    return (
+      d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate()
+    );
+  };
 
   for (let i = 0; i <= 365; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(today.getDate() - i);
-    const dateStr = checkDate.toISOString().split("T")[0];
 
     const hasRun = verifiedRuns.some((run) => {
-      return new Date(run.startTime).toISOString().split("T")[0] === dateStr;
+      return isSameDay(new Date(run.startTime), checkDate);
     });
 
     if (hasRun) {
       streak++;
     } else if (i > 0) {
+      // Allow missing today if we haven't run yet, but break if we missed yesterday
       break;
     }
   }
@@ -225,13 +233,17 @@ export default function HomePage() {
         </div>
         <div className="px-5 mt-5 mb-6">
           <div
-            className="rounded-2xl bg-white border border-border-light shadow-card overflow-hidden cursor-pointer"
+            className="rounded-2xl border bg-surface border-border-light/70 shadow-card transition-shadow duration-250 p-4 flex flex-col items-center justify-center text-center py-6 gap-2 !bg-gradient-to-br transition-transform active:scale-95 cursor-pointer from-orange-500/10 to-orange-400/5 !border-orange-500/20"
             onClick={() => setShowStreakModal(true)}
           >
-            <div className="p-6 text-center">
+            <div className="w-full">
               <div className="flex flex-col items-center">
-                <div className="streak-pulse mb-4 p-5 bg-primary/10 rounded-full">
-                  <Flame size={32} className="text-primary" fill="currentColor" />
+                <div className="streak-pulse mb-4 p-5 bg-orange-500/10 rounded-full">
+                  <Flame
+                    size={32}
+                    className="text-orange-500"
+                    fill="currentColor"
+                  />
                 </div>
 
                 <h2 className="text-6xl font-bold text-text-primary tracking-tight mb-1">
@@ -270,7 +282,15 @@ export default function HomePage() {
                           new Date(r.startTime).toISOString().split("T")[0] ===
                             dateStr,
                       );
-                      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                      const dayNames = [
+                        "Mon",
+                        "Tue",
+                        "Wed",
+                        "Thu",
+                        "Fri",
+                        "Sat",
+                        "Sun",
+                      ];
 
                       return (
                         <div
