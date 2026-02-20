@@ -91,11 +91,12 @@ export default function EventsPage() {
       <Header
         title="Events"
         subtitle={isEventManager ? "Event Manager Dashboard" : "Join challenges & earn rewards"}
+        largeTitle={!isEventManager}
         right={
           isEventManager ? (
             <button
               onClick={() => setShowCreateForm(true)}
-              className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95"
+              className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 ios-press"
             >
               <Plus size={18} className="text-white" />
             </button>
@@ -115,21 +116,23 @@ export default function EventsPage() {
         </div>
       )}
 
-      <div className="px-5 pt-3 pb-2 flex gap-2">
-        {(["all", "joined", "upcoming"] as FilterTab[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
-              activeTab === tab
-                ? "bg-primary/90 text-text-inverse shadow-gentle"
-                : "bg-surface-tertiary text-text-tertiary",
-            )}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+      <div className="px-5 pt-3 pb-4">
+        <div className="bg-surface-tertiary/80 rounded-xl p-1 flex gap-1">
+          {(["all", "joined", "upcoming"] as FilterTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "flex-1 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ios-press",
+                activeTab === tab
+                  ? "bg-surface text-text-primary shadow-card"
+                  : "text-text-tertiary",
+              )}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-5 space-y-3 mt-2">

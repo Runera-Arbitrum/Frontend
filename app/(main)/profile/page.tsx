@@ -424,14 +424,13 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
-        {/* Glassmorphism Navbar */}
-        <div className="absolute top-0 inset-x-0 z-20 px-5 py-4 flex items-center justify-end">
-          <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white transition-transform active:scale-95 cursor-pointer">
+        <div className="absolute top-0 inset-x-0 z-20 px-5 ios-header-safe flex items-center justify-end">
+          <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white ios-press">
             <Settings size={20} />
           </button>
         </div>
 
-        <div className="relative px-5 pt-12 pb-14">
+        <div className="relative px-5 pt-16 pb-14">
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-white/90 flex items-center justify-center mb-3 ring-4 ring-white/20 shadow-lg">
               <User size={40} className="text-primary" />
@@ -443,7 +442,7 @@ export default function ProfilePage() {
 
             <button
               onClick={copyAddress}
-              className="flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30 cursor-pointer"
+              className="flex items-center gap-1.5 mt-2 bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/30 ios-press"
             >
               <span className="text-xs text-white font-mono font-medium">
                 {walletAddress ? truncateAddress(walletAddress) : "---"}
@@ -471,11 +470,11 @@ export default function ProfilePage() {
           <div className="w-full h-2.5 rounded-full bg-primary-50 overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary to-blue-500 transition-all duration-700 ease-out shadow-sm"
-              style={{ width: `${displayUser.exp % XP_PER_LEVEL}%` }}
+              style={{ width: `${((displayUser.exp % XP_PER_LEVEL) / XP_PER_LEVEL) * 100}%` }}
             />
           </div>
           <p className="text-xs text-text-tertiary mt-2">
-            Next:{" "}
+            Next tier:{" "}
             {
               TIER_NAMES[
                 Math.min(
@@ -488,26 +487,28 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="mt-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5">
-        {[
-          { id: "stats", label: "Stats", icon: <BarChart3 size={14} /> },
-          { id: "achievements", label: "Badges", icon: <Award size={14} /> },
-          { id: "equipped", label: "Gear", icon: <Package size={14} /> },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as ProfileTab)}
-            className={cn(
-              "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
-              activeTab === tab.id
-                ? "bg-surface text-text-primary shadow-card"
-                : "text-text-tertiary",
-            )}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+      <div className="px-5 mt-5 pb-3">
+        <div className="bg-surface-tertiary/80 rounded-xl p-1 flex gap-1">
+          {[
+            { id: "stats", label: "Stats", icon: <BarChart3 size={14} /> },
+            { id: "achievements", label: "Badges", icon: <Award size={14} /> },
+            { id: "equipped", label: "Gear", icon: <Package size={14} /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as ProfileTab)}
+              className={cn(
+                "flex-1 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ios-press flex items-center justify-center gap-1.5",
+                activeTab === tab.id
+                  ? "bg-surface text-text-primary shadow-card"
+                  : "text-text-tertiary",
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-5 mt-4 pb-6">
@@ -535,31 +536,31 @@ export default function ProfilePage() {
                   border: "border-primary/20",
                 },
                 {
-                  icon: <Trophy size={18} className="text-blue-500" />,
+                  icon: <Trophy size={18} className="text-primary" />,
                   label: "Verified Runs",
                   value: String(displayUser.verifiedRunCount),
-                  gradient: "from-blue-500/10 to-blue-600/5",
-                  border: "border-blue-500/20",
+                  gradient: "from-primary/8 to-blue-500/5",
+                  border: "border-primary/15",
                 },
                 {
-                  icon: <Flame size={18} className="text-orange-500" />,
+                  icon: <Flame size={18} className="text-primary" />,
                   label: "Longest Streak",
                   value: `${displayUser.longestStreakDays} days`,
-                  gradient: "from-orange-500/10 to-orange-400/5",
-                  border: "border-orange-500/20",
+                  gradient: "from-primary-100/30 to-primary-50/10",
+                  border: "border-primary/15",
                 },
                 {
-                  icon: <Zap size={18} className="text-yellow-500" />,
+                  icon: <Zap size={18} className="text-primary" />,
                   label: "Total XP",
                   value: `${displayUser.exp} XP`,
-                  gradient: "from-yellow-500/10 to-yellow-400/5",
-                  border: "border-yellow-500/20",
+                  gradient: "from-primary-50/50 to-surface",
+                  border: "border-primary/20",
                 },
               ].map((stat) => (
                 <Card
                   key={stat.label}
                   className={cn(
-                    "flex flex-col items-center justify-center text-center py-4 gap-2 !bg-gradient-to-br transition-transform active:scale-95 cursor-pointer",
+                    "flex flex-col items-center justify-center text-center py-4 gap-2 !bg-gradient-to-br ios-press",
                     stat.gradient,
                     `!${stat.border}`,
                   )}

@@ -7,6 +7,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   padding?: "none" | "sm" | "md" | "lg";
   hoverable?: boolean;
+  tapFeedback?: boolean;
   variant?: "default" | "white";
 }
 
@@ -26,6 +27,7 @@ export default function Card({
   children,
   padding = "md",
   hoverable = false,
+  tapFeedback = false,
   variant = "default",
   className,
   ...props
@@ -37,8 +39,9 @@ export default function Card({
         variantStyles[variant],
         "shadow-card",
         hoverable &&
-          "hover:shadow-card-hover active:scale-[0.99] transition-all duration-250 cursor-pointer",
-        !hoverable && "transition-shadow duration-250",
+          "hover:shadow-card-hover active:scale-[0.98] active:bg-surface-secondary transition-all duration-150 cursor-pointer ios-press",
+        tapFeedback && "ios-list-item active:bg-primary/5 cursor-pointer",
+        !hoverable && !tapFeedback && "transition-shadow duration-250",
         paddingStyles[padding],
         className,
       )}

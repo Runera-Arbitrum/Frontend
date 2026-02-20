@@ -37,14 +37,15 @@ export default function Modal({ open, onClose, title, children, className }: Mod
       {/* Bottom sheet — gentle */}
       <div
         className={cn(
-          'relative w-full max-w-[430px] bg-surface rounded-t-2xl sm:rounded-2xl',
-          'p-6 pb-10 max-h-[85vh] overflow-y-auto',
+          'relative w-full max-w-[430px] bg-surface rounded-t-3xl sm:rounded-2xl',
+          'p-6 max-h-[85vh] overflow-y-auto',
           'animate-in slide-in-from-bottom duration-300',
+          'safe-bottom',
           className,
         )}
       >
         {/* Handle bar */}
-        <div className="w-9 h-1 rounded-full bg-border-light mx-auto mb-5 sm:hidden" />
+        <div className="w-9 h-1.5 rounded-full bg-text-tertiary/20 mx-auto mb-5 sm:hidden" />
 
         {title && (
           <div className="flex items-center justify-between mb-5">

@@ -48,6 +48,22 @@
   --shadow-bottom-nav: 0 -1px 20px rgba(0, 0, 0, 0.05);
   --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.06);
   --shadow-gentle: 0 2px 10px rgba(0, 114, 244, 0.15);
+
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+
+  --ease-ios: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-ios-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-ios: cubic-bezier(0.17, 0.67, 0.32, 0.99);
+
+  --font-size-large-title: 34px;
+  --font-size-title-1: 28px;
+  --font-size-headline: 17px;
+  --font-size-body: 17px;
+  --font-size-footnote: 13px;
+  --font-size-caption-1: 12px;
 }
 
 * {
@@ -101,6 +117,106 @@ body {
 }
 .tier-diamond {
   background: linear-gradient(135deg, #48c9f4, #7edcff);
+}
+
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.ios-header-safe {
+  padding-top: calc(env(safe-area-inset-top) + 1rem);
+}
+
+.ios-bottom-nav-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+}
+
+.ios-press {
+  transition: transform 0.15s var(--ease-ios-out), opacity 0.15s var(--ease-ios-out);
+}
+
+.ios-press:active {
+  transform: scale(0.96);
+  opacity: 0.8;
+}
+
+.ios-large-title {
+  font-size: var(--font-size-large-title);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.ios-title-1 {
+  font-size: var(--font-size-title-1);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.ios-headline {
+  font-size: var(--font-size-headline);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.ios-body {
+  font-size: var(--font-size-body);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+}
+
+.ios-footnote {
+  font-size: var(--font-size-footnote);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+.glass-ios-nav {
+  background: rgba(255, 255, 255, 0.81);
+  border: 0.9px solid rgba(0, 0, 0, 0.11);
+  box-shadow: 0px 1.2px 4.9px 0.6px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(4.4px);
+  -webkit-backdrop-filter: blur(4.4px);
+}
+
+.glass-ios-header {
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.ios-touch-44 {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-touch-48 {
+  min-width: 48px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-list-item {
+  cursor: pointer;
+  transition: background-color 0.15s var(--ease-ios);
+}
+
+.ios-list-item:active {
+  background-color: rgba(0, 114, 244, 0.06);
 }
 
 .page-enter {
@@ -239,8 +355,16 @@ body {
   border-radius: 12px;
 }
 
-@supports (padding: env(safe-area-inset-bottom)) {
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+@keyframes ios-spinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ios-loading {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(0, 114, 244, 0.2);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: ios-spinner 0.8s linear infinite;
 }

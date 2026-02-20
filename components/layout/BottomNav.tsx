@@ -24,17 +24,12 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 flex justify-center pb-3 pointer-events-none">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40 flex justify-center ios-bottom-nav-safe pointer-events-none">
       <nav
-        className="pointer-events-auto rounded-[41px] px-3"
+        className="pointer-events-auto rounded-[41px] px-3 glass-ios-nav"
         style={{
           width: 280,
           height: 52,
-          background: 'rgba(255, 255, 255, 0.81)',
-          border: '0.9px solid rgba(0, 0, 0, 0.11)',
-          boxShadow: '0px 1.2px 4.9px 0.6px rgba(0, 0, 0, 0.04)',
-          backdropFilter: 'blur(4.4px)',
-          WebkitBackdropFilter: 'blur(4.4px)',
         }}
       >
         <div className="flex items-center justify-around h-full">
@@ -49,16 +44,16 @@ export default function BottomNav() {
                 className="flex items-center justify-center"
               >
                 <div className={cn(
-                  'w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200',
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ios-press',
                   isActive ? 'bg-[#0072F4]' : '',
                 )}>
                   <Icon
-                    size={20}
+                    size={22}
                     className={cn(
                       'transition-all duration-200',
                       isActive ? 'text-white' : 'text-[#8893A2]',
                     )}
-                    strokeWidth={isActive ? 2.2 : 1.8}
+                    strokeWidth={isActive ? 2.3 : 1.9}
                   />
                 </div>
               </Link>

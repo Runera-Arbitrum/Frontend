@@ -27,9 +27,8 @@ import {
   Check,
   Loader2,
   ArrowLeft,
-  Map,
-  BarChart3,
   Footprints,
+  Heart,
 } from "lucide-react";
 
 const RunMap = dynamic(() => import("@/components/record/RunMap"), {
@@ -37,7 +36,7 @@ const RunMap = dynamic(() => import("@/components/record/RunMap"), {
 });
 
 type RecordState = "idle" | "running" | "paused" | "validating" | "summary";
-type RunView = "stats" | "map";
+type CardView = "collapsed" | "expanded";
 
 interface ValidateStep {
   label: string;
@@ -50,7 +49,7 @@ export default function RecordPage() {
   const { success: toastSuccess, error: toastError } = useToast();
   const [state, setState] = useState<RecordState>("idle");
   const [elapsed, setElapsed] = useState(0);
-  const [runView, setRunView] = useState<RunView>("map");
+  const [cardView, setCardView] = useState<CardView>("collapsed");
   const [submitting, setSubmitting] = useState(false);
   const [xpEarned, setXpEarned] = useState<number | null>(null);
   const [runStartTime, setRunStartTime] = useState<string>("");
@@ -97,7 +96,7 @@ export default function RecordPage() {
       return;
     }
     setState("running");
-    setRunView("map");
+    setCardView("collapsed");
     setElapsed(0);
     setXpEarned(null);
     setRunStartTime(new Date().toISOString());
@@ -157,7 +156,7 @@ export default function RecordPage() {
 
   const handleReset = useCallback(() => {
     setState("idle");
-    setRunView("map");
+    setCardView("collapsed");
     setElapsed(0);
     setDemoDistance(null);
     geo.resetPath();
@@ -227,18 +226,18 @@ export default function RecordPage() {
 
       if (result.success && result.status === "VERIFIED") {
         setXpEarned(result.xpEarned || 0);
-        toastSuccess(`Run berhasil disimpan! +${result.xpEarned || 0} XP earned`);
+        toastSuccess(`Run saved successfully! +${result.xpEarned || 0} XP earned`);
         handleReset();
         setTimeout(() => {
           router.push("/home");
         }, 1500);
       } else if (result.status === "REJECTED") {
         toastError(
-          `Run ditolak: ${result.message || result.reasonCode || "Unknown reason"}`,
+          `Run rejected: ${result.message || result.reasonCode || "Unknown reason"}`,
         );
         handleReset();
       } else {
-        toastSuccess("Run berhasil disimpan dan sedang divalidasi");
+        toastSuccess("Run saved successfully and is being validated");
         handleReset();
         setTimeout(() => {
           router.push("/home");
@@ -246,7 +245,7 @@ export default function RecordPage() {
       }
     } catch (err) {
       toastError(
-        "Gagal menyimpan run: " +
+        "Failed to save run: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );
     } finally {
@@ -264,50 +263,58 @@ export default function RecordPage() {
 
   if (state === "idle") {
     return (
-      <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-          <div className="w-8" />
-          <button className="flex items-center gap-1.5 bg-surface-tertiary px-3 py-1.5 rounded-full cursor-pointer">
+      <div className="page-enter flex flex-col h-screen relative">
+        <div className="absolute top-0 inset-x-0 z-20 px-5 pt-4 safe-top flex items-center justify-center">
+          <div className="flex items-center gap-1.5 bg-surface/90 backdrop-blur-md border border-border-light/50 px-3 py-1.5 rounded-full shadow-card">
             <span className="w-2 h-2 rounded-full bg-success" />
-            <span className="text-xs font-medium text-text-secondary">
+            <span className="text-xs font-semibold text-text-secondary">
               READY
             </span>
-            <ChevronDown size={14} className="text-text-tertiary" />
-          </button>
-          <div className="w-8" />
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-8">
-          <p className="text-[11px] text-primary font-medium uppercase tracking-wider mb-1">
-            Time Elapsed
-          </p>
-          <p className="text-5xl font-light text-text-primary tracking-tight">
-            00:00
-          </p>
-
-          <div className="mt-8">
-            <p className="text-4xl font-light text-text-primary tracking-tight text-center">
-              0.00
-            </p>
-            <p className="text-[11px] text-primary font-medium uppercase tracking-wider text-center mt-1">
-              Kilometers
-            </p>
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-4 pb-8">
-          <button
-            onClick={handleStart}
-            className="streak-pulse w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <Footprints size={30} className="text-white" strokeWidth={2} />
-          </button>
-          <button
-            onClick={handleDemoRun}
-            className="text-xs text-text-tertiary underline underline-offset-2 cursor-pointer"
-          >
-            Try Demo Run
-          </button>
+        <div className="absolute inset-0">
+          <RunMap position={geo.position} path={geo.path} isTracking={false} />
+        </div>
+
+        <div className="absolute bottom-0 inset-x-0 z-20 px-5 pb-6 safe-bottom">
+          <div className="bg-surface/95 backdrop-blur-md border border-border-light rounded-3xl shadow-card p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex-1 text-center">
+                <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                  Time
+                </p>
+                <p className="text-3xl font-semibold text-text-primary tracking-tight">
+                  00:00
+                </p>
+              </div>
+              <div className="w-px h-12 bg-border" />
+              <div className="flex-1 text-center">
+                <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                  Distance
+                </p>
+                <p className="text-3xl font-semibold text-text-primary tracking-tight">
+                  0.00
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={handleStart}
+                className="w-20 h-20 rounded-full bg-primary text-white shadow-gentle transition-all duration-200 ios-press cursor-pointer flex items-center justify-center"
+              >
+                <Play size={28} fill="white" className="text-white ml-1" strokeWidth={0} />
+              </button>
+
+              <button
+                onClick={handleDemoRun}
+                className="text-xs text-text-tertiary cursor-pointer"
+              >
+                Try Demo Run
+              </button>
+            </div>
+          </div>
         </div>
 
         <Modal
@@ -341,161 +348,156 @@ export default function RecordPage() {
   }
 
   if (state === "running") {
-    return (
-      <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-          <div className="flex items-center bg-surface-tertiary rounded-full p-0.5">
-            <button
-              onClick={() => setRunView("stats")}
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
-                runView === "stats"
-                  ? "bg-primary text-white"
-                  : "text-text-tertiary",
-              )}
-            >
-              <BarChart3 size={15} />
-            </button>
-            <button
-              onClick={() => setRunView("map")}
-              className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
-                runView === "map"
-                  ? "bg-primary text-white"
-                  : "text-text-tertiary",
-              )}
-            >
-              <Map size={15} />
-            </button>
+    if (cardView === "collapsed") {
+      return (
+        <div className="page-enter flex flex-col h-screen relative">
+          <div className="absolute top-0 inset-x-0 z-20 px-5 pt-4 safe-top flex items-center justify-center">
+            <div className="flex items-center gap-1.5 bg-primary px-3 py-1.5 rounded-full shadow-card">
+              <span className="w-2 h-2 rounded-full bg-white streak-pulse" />
+              <span className="text-xs font-bold text-white tracking-wide">
+                RUNNING
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-primary streak-pulse" />
-            <span className="text-xs font-semibold text-primary">RUNNING</span>
+          {geo.position && (
+            <div className="absolute top-16 right-5 z-20">
+              <div className="flex items-center gap-1.5 bg-success text-white px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-card">
+                <MapPin size={10} strokeWidth={3} />
+                GPS
+              </div>
+            </div>
+          )}
+
+          <div className="absolute inset-0">
+            <RunMap
+              position={geo.position}
+              path={geo.path}
+              isTracking={true}
+            />
           </div>
 
-          <div className="w-[72px]" />
-        </div>
-
-        {runView === "map" ? (
-          <>
-            <div className="flex-1 relative">
-              <RunMap
-                position={geo.position}
-                path={geo.path}
-                isTracking={true}
-              />
-              {geo.position && (
-                <div className="absolute top-3 right-3 z-10">
-                  <div className="flex items-center gap-1.5 bg-success text-white px-2.5 py-1 rounded-full text-[11px] font-medium shadow-soft">
-                    <MapPin size={10} />
-                    GPS
-                  </div>
-                </div>
-              )}
-
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+          <div className="absolute bottom-0 inset-x-0 z-20 px-5 pb-6 safe-bottom">
+            <div className="bg-surface/95 backdrop-blur-md border border-border-light rounded-3xl shadow-card p-5">
+              <div className="flex justify-center mb-4">
                 <button
-                  onClick={() => setRunView("stats")}
-                  className="w-12 h-12 rounded-full bg-surface/90 backdrop-blur-sm border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
+                  onClick={() => setCardView("expanded")}
+                  className="w-12 h-12 rounded-full bg-surface-tertiary border border-border-light shadow-card flex items-center justify-center transition-all duration-200 ios-press cursor-pointer"
                 >
-                  <ChevronDown size={20} className="text-text-secondary" />
+                  <ChevronUp size={20} className="text-text-secondary" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-5">
+                <div className="text-center">
+                  <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                    Time
+                  </p>
+                  <p className="text-xl font-bold text-text-primary">
+                    {formatDuration(elapsed)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                    Dist
+                  </p>
+                  <p className="text-xl font-bold text-text-primary">
+                    {distanceKm}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                    Pace
+                  </p>
+                  <p className="text-xl font-bold text-text-primary">
+                    {pace > 0 ? formatPace(pace) : "--:--"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={handleStop}
+                  className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 ios-press cursor-pointer"
+                >
+                  <Square size={16} fill="white" className="text-white" />
+                </button>
+                <button
+                  onClick={handlePause}
+                  className="w-14 h-14 rounded-full bg-surface border-2 border-border-light flex items-center justify-center shadow-card transition-all duration-200 ios-press cursor-pointer"
+                >
+                  <Pause size={18} className="text-text-primary" />
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      );
+    }
 
-            <div className="bg-surface border-t border-border-light">
-              <div className="px-5 py-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-center flex-1">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {formatDuration(elapsed)}
-                    </p>
-                    <p className="text-[9px] text-text-tertiary uppercase">
-                      Time
-                    </p>
-                  </div>
-                  <div className="w-px h-6 bg-border" />
-                  <div className="text-center flex-1">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {distanceKm}
-                    </p>
-                    <p className="text-[9px] text-text-tertiary uppercase">
-                      Distance (km)
-                    </p>
-                  </div>
-                  <div className="w-px h-6 bg-border" />
-                  <div className="text-center flex-1">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {speedKmh}
-                    </p>
-                    <p className="text-[9px] text-text-tertiary uppercase">
-                      Speed (km/h)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center px-8 relative">
-            <p className="text-[11px] text-error font-medium uppercase tracking-wider mb-1">
-              Time Elapsed
+    return (
+      <div className="page-enter flex flex-col h-screen bg-surface relative">
+        <div className="absolute top-0 inset-x-0 z-20 px-5 pt-4 safe-top flex items-center justify-center">
+          <div className="flex items-center gap-1.5 bg-primary px-3 py-1.5 rounded-full shadow-card">
+            <span className="w-2 h-2 rounded-full bg-white streak-pulse" />
+            <span className="text-xs font-bold text-white tracking-wide">
+              RUNNING
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          <div className="text-center mb-10">
+            <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-3">
+              Time
             </p>
-            <p className="text-5xl font-light text-text-primary tracking-tight">
+            <p className="text-6xl font-semibold text-text-primary tracking-tight">
               {formatDuration(elapsed)}
             </p>
+          </div>
 
-            <div className="mt-8">
-              <p className="text-4xl font-light text-text-primary tracking-tight text-center">
-                {distanceKm}
-              </p>
-              <p className="text-[11px] text-primary font-medium uppercase tracking-wider text-center mt-1">
-                Kilometers
-              </p>
-            </div>
+          <div className="text-center mb-10">
+            <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-3">
+              Distance
+            </p>
+            <p className="text-5xl font-semibold text-text-primary tracking-tight">
+              {distanceKm}
+            </p>
+            <p className="text-base font-semibold text-text-tertiary mt-2">km</p>
+          </div>
 
-            <div className="flex items-center gap-8 mt-8">
-              <div className="text-center">
-                <p className="text-lg font-light text-text-primary">
-                  {pace > 0 ? formatPace(pace) : "0.00"}
-                </p>
-                <p className="text-[10px] text-text-tertiary uppercase mt-0.5">
-                  Avg Pace
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-light text-text-primary">
-                  {speedKmh}
-                </p>
-                <p className="text-[10px] text-text-tertiary uppercase mt-0.5">
-                  Speed
-                </p>
-              </div>
-            </div>
+          <div className="text-center mb-8">
+            <p className="text-3xl font-semibold text-text-primary">
+              {pace > 0 ? formatPace(pace) : "--:--"}
+            </p>
+            <p className="text-sm font-bold text-text-tertiary uppercase mt-2">
+              Avg Pace
+            </p>
+          </div>
 
+          <button
+            onClick={() => setCardView("collapsed")}
+            className="w-12 h-12 rounded-full bg-surface-tertiary border border-border-light shadow-card flex items-center justify-center transition-all duration-200 ios-press cursor-pointer"
+          >
+            <ChevronDown size={20} className="text-text-secondary" />
+          </button>
+        </div>
+
+        <div className="px-5 pb-6 safe-bottom">
+          <div className="flex items-center justify-center gap-4">
             <button
-              onClick={() => setRunView("map")}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-surface-tertiary border border-border-light shadow-gentle flex items-center justify-center transition-all duration-200 active:scale-95 cursor-pointer"
+              onClick={handleStop}
+              className="w-16 h-16 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 ios-press cursor-pointer"
             >
-              <ChevronUp size={20} className="text-text-secondary" />
+              <Square size={18} fill="white" className="text-white" />
+            </button>
+            <button
+              onClick={handlePause}
+              className="w-16 h-16 rounded-full bg-surface border-2 border-border-light flex items-center justify-center shadow-card transition-all duration-200 ios-press cursor-pointer"
+            >
+              <Pause size={20} className="text-text-primary" />
             </button>
           </div>
-        )}
-
-        <div className="flex items-center justify-center gap-5 py-5 bg-surface">
-          <button
-            onClick={handleStop}
-            className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <Square size={20} fill="white" className="text-white" />
-          </button>
-          <button
-            onClick={handlePause}
-            className="w-14 h-14 rounded-full bg-warning flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <Pause size={20} fill="white" className="text-white" />
-          </button>
         </div>
       </div>
     );
@@ -503,59 +505,68 @@ export default function RecordPage() {
 
   if (state === "paused") {
     return (
-      <div className="page-enter flex flex-col h-[calc(100dvh-6rem)]">
-        <div className="flex-1 relative">
-          <RunMap position={geo.position} path={geo.path} isTracking={false} />
-
-          <div className="absolute top-4 right-4 z-10">
-            <div className="flex items-center gap-1.5 bg-warning text-white px-2.5 py-1 rounded-full text-[11px] font-medium shadow-soft">
-              <Pause size={10} />
-              Paused
-            </div>
+      <div className="page-enter flex flex-col h-screen relative">
+        <div className="absolute top-0 inset-x-0 z-20 px-5 pt-4 safe-top flex items-center justify-center">
+          <div className="flex items-center gap-1.5 bg-warning px-3 py-1.5 rounded-full shadow-card">
+            <Pause size={12} className="text-white" strokeWidth={2.5} />
+            <span className="text-xs font-bold text-white tracking-wide">
+              PAUSED
+            </span>
           </div>
         </div>
 
-        <div className="bg-surface border-t border-border-light">
-          <div className="px-5 py-3">
-            <div className="flex items-center justify-between">
-              <div className="text-center flex-1">
-                <p className="text-sm font-semibold text-text-primary">
+        <div className="absolute inset-0">
+          <RunMap position={geo.position} path={geo.path} isTracking={false} />
+        </div>
+
+        <div className="absolute bottom-0 inset-x-0 z-20 px-5 pb-6 safe-bottom">
+          <div className="bg-surface/95 backdrop-blur-md border border-border-light rounded-3xl shadow-card p-5">
+            <div className="grid grid-cols-3 gap-4 mb-5">
+              <div className="text-center">
+                <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                  Time
+                </p>
+                <p className="text-xl font-bold text-text-primary">
                   {formatDuration(elapsed)}
                 </p>
-                <p className="text-[9px] text-text-tertiary uppercase">Time</p>
               </div>
-              <div className="w-px h-6 bg-border" />
-              <div className="text-center flex-1">
-                <p className="text-sm font-semibold text-text-primary">
+              <div className="text-center">
+                <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                  Dist
+                </p>
+                <p className="text-xl font-bold text-text-primary">
                   {distanceKm}
                 </p>
-                <p className="text-[9px] text-text-tertiary uppercase">
-                  Distance (km)
-                </p>
               </div>
-              <div className="w-px h-6 bg-border" />
-              <div className="text-center flex-1">
-                <p className="text-sm font-semibold text-text-primary">
-                  {pace > 0 ? formatPace(pace) : "--"}
+              <div className="text-center">
+                <p className="text-sm font-bold text-text-tertiary uppercase tracking-wide mb-2">
+                  Pace
                 </p>
-                <p className="text-[9px] text-text-tertiary uppercase">Pace</p>
+                <p className="text-xl font-bold text-text-primary">
+                  {pace > 0 ? formatPace(pace) : "--:--"}
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-center gap-5 py-5">
-            <button
-              onClick={handleStop}
-              className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <Square size={20} fill="white" className="text-white" />
-            </button>
-            <button
-              onClick={handleResume}
-              className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-gentle transition-all duration-200 active:scale-95 cursor-pointer"
-            >
-              <Play size={20} fill="white" className="text-white ml-0.5" />
-            </button>
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={handleStop}
+                className="w-14 h-14 rounded-full bg-error flex items-center justify-center shadow-soft transition-all duration-200 ios-press cursor-pointer"
+              >
+                <Square size={16} fill="white" className="text-white" />
+              </button>
+              <button
+                onClick={handleResume}
+                className="w-14 h-14 rounded-full bg-primary flex items-center justify-center shadow-card transition-all duration-200 ios-press cursor-pointer"
+              >
+                <Play
+                  size={18}
+                  fill="white"
+                  className="text-white ml-0.5"
+                  strokeWidth={0}
+                />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -617,98 +628,111 @@ export default function RecordPage() {
   }
 
   return (
-    <div className="page-enter flex flex-col h-[calc(100dvh-6rem)] overflow-y-auto">
-      <div className="px-5 pt-4 pb-2 flex items-center justify-between">
-        <button onClick={handleReset} className="p-1 cursor-pointer">
-          <ArrowLeft size={20} className="text-text-secondary" />
-        </button>
-        <span className="text-sm font-semibold text-text-primary">Summary</span>
-        <div className="w-8" />
-      </div>
-
-      <div className="flex-1 px-5 pt-4">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-semibold text-text-primary">
+    <div className="page-enter flex flex-col h-screen bg-surface overflow-y-auto">
+      <div className="flex-1 px-6 pt-8 safe-top">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-text-primary mb-2">
             Great Job!
           </h2>
-          <p className="text-sm text-text-tertiary mt-1">Run completed</p>
-        </div>
-
-        <div className="text-center mb-6">
-          <div className="flex items-baseline justify-center gap-2">
-            <span className="text-[11px] text-text-tertiary uppercase">
-              Total Distance
-            </span>
-            <span className="text-[11px] text-primary font-semibold uppercase">
-              Kilometers
-            </span>
-          </div>
-          <p className="text-5xl font-light text-text-primary mt-2 tracking-tight">
-            {distanceKm}
+          <p className="text-sm text-text-tertiary">
+            Run completed successfully
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <SummaryStat
-            icon={<Clock size={16} />}
-            label="Total Time"
-            value={formatDuration(elapsed)}
-          />
-          <SummaryStat
-            icon={<Zap size={16} />}
-            label="Avg Pace"
-            value={pace > 0 ? formatPace(pace) : "--:--"}
-          />
-          <SummaryStat
-            icon={<Mountain size={16} />}
-            label="Elevation"
-            value="0m"
-          />
-          <SummaryStat icon={<Flame size={16} />} label="Calories" value="0" />
+        <div className="text-center mb-8">
+          <p className="text-xs font-bold text-text-tertiary uppercase tracking-wide mb-2">
+            Total Distance
+          </p>
+          <div className="flex items-baseline justify-center gap-2">
+            <p className="text-6xl font-light text-text-primary tracking-tight">
+              {distanceKm}
+            </p>
+            <span className="text-xl text-primary font-semibold mb-2">km</span>
+          </div>
         </div>
 
-        <Card className="flex items-center gap-3 !bg-primary-50 !border-primary-100 mb-6">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Zap size={18} className="text-primary" />
+        <div className="bg-surface-secondary rounded-3xl p-5 mb-5">
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Clock size={14} className="text-text-tertiary" />
+                <p className="text-xs text-text-tertiary uppercase tracking-wide">
+                  Time
+                </p>
+              </div>
+              <p className="text-xl font-semibold text-text-primary">
+                {formatDuration(elapsed)}
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Zap size={14} className="text-text-tertiary" />
+                <p className="text-xs text-text-tertiary uppercase tracking-wide">
+                  Pace
+                </p>
+              </div>
+              <p className="text-xl font-semibold text-text-primary">
+                {pace > 0 ? formatPace(pace) : "--:--"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Mountain size={14} className="text-text-tertiary" />
+                <p className="text-xs text-text-tertiary uppercase tracking-wide">
+                  Elevation
+                </p>
+              </div>
+              <p className="text-xl font-semibold text-text-primary">0m</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Flame size={14} className="text-text-tertiary" />
+                <p className="text-xs text-text-tertiary uppercase tracking-wide">
+                  Calories
+                </p>
+              </div>
+              <p className="text-xl font-semibold text-text-primary">
+                {Math.round(effectiveDistance / 10)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center">
+            <Zap size={20} className="text-white" strokeWidth={2.5} />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-primary">+100 XP Earned</p>
-            <p className="text-xs text-text-tertiary">Pending verification</p>
+            <p className="text-sm font-semibold text-primary">
+              Run will be verified
+            </p>
+            <p className="text-xs text-text-tertiary">
+              You'll earn XP after verification
+            </p>
           </div>
-        </Card>
+        </div>
       </div>
 
-      <div className="px-5 pb-6">
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full h-[52px] text-[15px] rounded-2xl"
-          onClick={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? "Submitting..." : "Save"}
-        </Button>
+      <div className="px-6 pb-6 safe-bottom">
+        <div className="flex gap-3">
+          <button
+            onClick={handleReset}
+            className="flex-1 h-[52px] rounded-2xl border-2 border-border-light bg-surface text-text-secondary font-semibold text-[15px] transition-all duration-200 ios-press cursor-pointer"
+          >
+            Discard
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 h-[52px] rounded-2xl bg-primary text-white font-semibold text-[15px] shadow-gentle transition-all duration-200 ios-press cursor-pointer disabled:opacity-50"
+          >
+            {submitting ? "Saving..." : "Save Run"}
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
-
-function SummaryStat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="bg-surface-tertiary rounded-2xl p-4 text-center">
-      <div className="text-text-tertiary mb-1.5 flex justify-center">
-        {icon}
-      </div>
-      <p className="text-[11px] text-text-tertiary uppercase mb-0.5">{label}</p>
-      <p className="text-lg font-semibold text-text-primary">{value}</p>
     </div>
   );
 }

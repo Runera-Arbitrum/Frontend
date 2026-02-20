@@ -269,7 +269,8 @@ export default function HomePage() {
   return (
     <div className="page-enter">
       <div className="bg-gentle-gradient px-5 pt-12 pb-5">
-        <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-text-primary mb-4">Home</h1>
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <Image
               src="/runera-biru.svg"
@@ -287,17 +288,17 @@ export default function HomePage() {
           </div>
           {user && <TierBadge tier={displayUser.tier as TierLevel} />}
         </div>
-        <div className="px-5 mt-5 mb-6">
+        <div className="mt-5 mb-6">
           <div
-            className="rounded-2xl border bg-surface border-border-light/70 shadow-card transition-shadow duration-250 p-4 flex flex-col items-center justify-center text-center py-6 gap-2 !bg-gradient-to-br transition-transform active:scale-95 cursor-pointer from-orange-500/10 to-orange-400/5 !border-orange-500/20"
+            className="rounded-2xl border bg-surface border-border-light/70 shadow-card p-4 flex flex-col items-center justify-center text-center py-6 gap-2 !bg-gradient-to-br ios-press from-primary/10 to-primary-light/5 !border-primary/20"
             onClick={() => setShowStreakModal(true)}
           >
             <div className="w-full">
               <div className="flex flex-col items-center">
-                <div className="streak-pulse mb-4 p-5 bg-orange-500/10 rounded-full">
+                <div className="streak-pulse mb-4 p-5 bg-primary/10 rounded-full">
                   <Flame
                     size={32}
-                    className="text-orange-500"
+                    className="text-primary"
                     fill="currentColor"
                   />
                 </div>
@@ -639,7 +640,7 @@ export default function HomePage() {
             {runs.slice(0, 10).map((run, idx) => (
               <div
                 key={run.id}
-                className="stagger-item flex items-center justify-between px-4 py-3 border-b border-border-light/40 last:border-b-0"
+                className="stagger-item flex items-center justify-between px-4 py-3 border-b border-border-light/40 last:border-b-0 ios-list-item"
                 style={{ animationDelay: `${idx * 60}ms` }}
               >
                 <div className="flex items-center gap-3">
