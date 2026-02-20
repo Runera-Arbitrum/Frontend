@@ -221,170 +221,119 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <TierBadge tier={displayUser.tier as TierLevel} />
+          {user && <TierBadge tier={displayUser.tier as TierLevel} />}
         </div>
-        {/* Hero Streak Section */}
-        <div className="px-5 mt-5">
-          <div className="relative overflow-hidden rounded-[32px] bg-white border border-border-light shadow-card p-6 text-center">
-            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-primary/5 to-transparent" />
-
-            <div className="relative z-10 flex flex-col items-center">
-              <div className="streak-pulse mb-4 p-5 bg-primary/10 rounded-full">
-                <Flame size={32} className="text-primary" fill="currentColor" />
-              </div>
-
-              <h2 className="text-6xl font-bold text-text-primary tracking-tight mb-1">
-                {currentStreak}
-              </h2>
-              <p className="text-lg font-semibold text-text-primary">
-                Week Streak
-              </p>
-              <p className="text-sm text-text-tertiary mb-6">
-                You are doing really great!
-              </p>
-
-              {/* Weekly Indicators */}
-              <div className="flex items-center justify-center gap-2.5">
-                {(() => {
-                  const today = new Date();
-                  const days = [];
-                  for (let i = 6; i >= 0; i--) {
-                    const d = new Date(today);
-                    d.setDate(today.getDate() - i);
-                    days.push(d);
-                  }
-                  return days.map((date, idx) => {
-                    const isToday = idx === 6;
-                    const dateStr = date.toISOString().split("T")[0];
-                    const hasRun = runs.some(
-                      (r) =>
-                        r.status === "VERIFIED" &&
-                        new Date(r.startTime).toISOString().split("T")[0] ===
-                          dateStr,
-                    );
-                    const dayLetter = date.toLocaleDateString("en-US", {
-                      weekday: "narrow",
-                    });
-
-                    return (
-                      <div
-                        key={idx}
-                        className="flex flex-col items-center gap-1.5"
-                      >
-                        <span className="text-[10px] text-text-tertiary font-medium">
-                          {dayLetter}
-                        </span>
-                        <div
-                          className={cn(
-                            "w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-300",
-                            hasRun
-                              ? "bg-primary text-white shadow-gentle scale-105"
-                              : isToday
-                                ? "bg-surface-tertiary border border-primary/30 text-text-primary"
-                                : "bg-surface-tertiary text-text-tertiary/40",
-                          )}
-                        >
-                          {hasRun ? (
-                            <Check size={14} strokeWidth={3} />
-                          ) : (
-                            date.getDate()
-                          )}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Bento Grid */}
         <div className="px-5 mt-5 mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            {/* Total Distance */}
-            <div className="rounded-3xl bg-surface border border-border-light p-4 shadow-card">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-3">
-                <MapPin size={20} className="text-blue-500" />
+          <div
+            className="rounded-2xl bg-white border border-border-light shadow-card overflow-hidden cursor-pointer"
+            onClick={() => setShowStreakModal(true)}
+          >
+            <div className="p-6 text-center">
+              <div className="flex flex-col items-center">
+                <div className="streak-pulse mb-4 p-5 bg-primary/10 rounded-full">
+                  <Flame size={32} className="text-primary" fill="currentColor" />
+                </div>
+
+                <h2 className="text-6xl font-bold text-text-primary tracking-tight mb-1">
+                  {currentStreak}
+                </h2>
+                <p className="text-lg font-semibold text-text-primary">
+                  Day Streak
+                </p>
+                <p className="text-sm text-text-tertiary mb-6">
+                  You are doing really great!
+                </p>
+
+                <div className="flex items-center justify-center gap-2.5">
+                  {(() => {
+                    const today = new Date();
+                    const dayOfWeek = today.getDay();
+                    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                    const monday = new Date(today);
+                    monday.setDate(today.getDate() - mondayOffset);
+
+                    const days = [];
+                    for (let i = 0; i < 7; i++) {
+                      const d = new Date(monday);
+                      d.setDate(monday.getDate() + i);
+                      days.push(d);
+                    }
+
+                    return days.map((date, idx) => {
+                      const todayStr = today.toISOString().split("T")[0];
+                      const dateStr = date.toISOString().split("T")[0];
+                      const isToday = dateStr === todayStr;
+                      const isFuture = date > today && !isToday;
+                      const hasRun = runs.some(
+                        (r) =>
+                          r.status === "VERIFIED" &&
+                          new Date(r.startTime).toISOString().split("T")[0] ===
+                            dateStr,
+                      );
+                      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+                      return (
+                        <div
+                          key={idx}
+                          className="flex flex-col items-center gap-1.5"
+                        >
+                          <span className="text-[10px] text-text-tertiary font-medium">
+                            {dayNames[idx]}
+                          </span>
+                          <div
+                            className={cn(
+                              "w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-300",
+                              hasRun
+                                ? "bg-primary text-white shadow-gentle scale-105"
+                                : isToday
+                                  ? "bg-surface-tertiary border border-primary/30 text-text-primary"
+                                  : isFuture
+                                    ? "bg-surface-tertiary/50 text-text-tertiary/20"
+                                    : "bg-surface-tertiary text-text-tertiary/40",
+                            )}
+                          >
+                            {hasRun ? (
+                              <Check size={14} strokeWidth={3} />
+                            ) : (
+                              date.getDate()
+                            )}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
-              <p className="text-2xl font-bold text-text-primary">
-                {formatDistance(displayUser.totalDistanceMeters)}
-              </p>
-              <p className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider mt-0.5">
-                Total Distance
-              </p>
             </div>
 
-            {/* Level Progress */}
-            <div className="rounded-3xl bg-surface border border-border-light p-4 shadow-card">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                  <TierBadge
-                    tier={displayUser.tier as TierLevel}
-                    className="scale-75"
-                  />
-                </div>
-                <span className="text-xs font-bold text-primary">
-                  Lvl {displayUser.level}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-text-tertiary">
-                  <span>XP</span>
-                  <span>
-                    {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL}
+            <div className="border-t border-border-light/50 grid grid-cols-2">
+              <div className="p-4 border-r border-border-light/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin size={14} className="text-blue-500" />
+                  <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">
+                    Total Distance
                   </span>
                 </div>
-                <div className="w-full h-1.5 rounded-full bg-surface-tertiary overflow-hidden">
+                <p className="text-xl font-bold text-text-primary">
+                  {formatDistance(displayUser.totalDistanceMeters)}
+                </p>
+              </div>
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-text-tertiary font-medium uppercase tracking-wider">
+                    Lvl {displayUser.level}
+                  </span>
+                  <span className="text-[10px] text-text-tertiary">
+                    {displayUser.exp % XP_PER_LEVEL}/{XP_PER_LEVEL} XP
+                  </span>
+                </div>
+                <div className="w-full h-1.5 rounded-full bg-surface-tertiary overflow-hidden mt-2">
                   <div
                     className="h-full rounded-full bg-primary transition-all duration-500"
                     style={{ width: `${levelProgress}%` }}
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="col-span-2 rounded-3xl bg-surface border border-border-light/70 shadow-card overflow-hidden">
-              <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-text-primary">
-                  Latest Run
-                </span>
-                <button className="text-[11px] text-primary font-medium flex items-center gap-0.5 cursor-pointer">
-                  All runs <ChevronRight size={12} />
-                </button>
-              </div>
-              {runs.length === 0 ? (
-                <div className="px-4 pb-4 text-center">
-                  <p className="text-xs text-text-tertiary py-4">
-                    No runs yet. Start running!
-                  </p>
-                </div>
-              ) : (
-                <div className="px-4 pb-3.5">
-                  {runs.slice(0, 2).map((run) => (
-                    <div
-                      key={run.id}
-                      className="flex items-center justify-between py-2.5 border-t border-border-light/50 first:border-t-0"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                          <TrendingUp size={15} className="text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-text-primary">
-                            {formatDistance(run.distanceMeters)}
-                          </p>
-                          <p className="text-[11px] text-text-tertiary">
-                            {formatDuration(run.durationSeconds)} ·{" "}
-                            {formatPace(run.avgPaceSeconds)}
-                          </p>
-                        </div>
-                      </div>
-                      <StatusBadge status={run.status} />
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -590,7 +539,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <TrendingUp size={16} className="text-primary" />
             <span className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-              Activity Feed
+              Run History
             </span>
           </div>
           <span className="text-[11px] text-text-tertiary">

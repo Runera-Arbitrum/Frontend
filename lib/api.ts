@@ -100,7 +100,7 @@ export async function getProfile(walletAddress: string): Promise<UserProfile | n
       walletAddress,
       exp: Number(profileData.xp) || 0,
       level: profileData.level || 1,
-      tier: (tier || 1) as TierLevel,
+      tier: (tier >= 1 && tier <= 5 ? tier : 1) as TierLevel,
       runCount: profileData.runCount || 0,
       verifiedRunCount: profileData.runCount || 0,
       totalDistanceMeters: Number(profileData.totalDistanceMeters) || 0,

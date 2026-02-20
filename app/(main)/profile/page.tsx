@@ -9,14 +9,7 @@ import { arbitrumSepolia } from "viem/chains";
 import { CONTRACT_ADDRESSES } from "@/lib/constants";
 import ProfileNFTABI from "@/lib/contracts/abis/RuneraProfileNFT.json";
 import type { UserProfile, Run } from "@/lib/types";
-import {
-  truncateAddress,
-  formatDistance,
-  formatDuration,
-  formatPace,
-  timeAgo,
-} from "@/lib/utils";
-import { MOCK_ACTIVITY_FEED } from "@/lib/mock-data";
+import { truncateAddress, formatDistance } from "@/lib/utils";
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
 import Card from "@/components/ui/Card";
@@ -27,7 +20,6 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 import {
   User,
-  ArrowLeft,
   LogOut,
   Copy,
   Check,
@@ -43,7 +35,7 @@ import {
   Target,
   Zap,
   Loader2,
-  MapPin,
+  BarChart3,
 } from "lucide-react";
 import {
   getUserAchievements,
@@ -52,7 +44,7 @@ import {
 } from "@/lib/contracts/achievements";
 import type { Hex } from "viem";
 
-type ProfileTab = "stats" | "feed" | "achievements" | "equipped";
+type ProfileTab = "stats" | "achievements" | "equipped";
 
 interface AchievementWithEvent extends AchievementData {
   eventIdHex: Hex;
@@ -406,13 +398,7 @@ export default function ProfilePage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
         {/* Glassmorphism Navbar */}
-        <div className="absolute top-0 inset-x-0 z-20 px-5 py-4 flex items-center justify-between">
-          <a
-            href="/home"
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white transition-transform active:scale-95 cursor-pointer"
-          >
-            <ArrowLeft size={20} />
-          </a>
+        <div className="absolute top-0 inset-x-0 z-20 px-5 py-4 flex items-center justify-end">
           <button className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white transition-transform active:scale-95 cursor-pointer">
             <Settings size={20} />
           </button>
@@ -423,10 +409,7 @@ export default function ProfilePage() {
             <div className="w-24 h-24 rounded-full bg-white/90 flex items-center justify-center mb-3 ring-4 ring-white/20 shadow-lg">
               <User size={40} className="text-primary" />
             </div>
-            <TierBadge
-              tier={(displayUser.tier || 1) as TierLevel}
-              className="mb-2"
-            />
+            <TierBadge tier={displayUser.tier as TierLevel} className="mb-2" />
             <p className="text-xl font-bold text-white">
               Level {displayUser.level}
             </p>
@@ -478,54 +461,26 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="px-5 mt-5 flex gap-2.5">
-        <Card
-          hoverable
-          className="flex-1 text-center py-3.5"
-          onClick={handleFaucet}
-        >
-          {faucetLoading ? (
-            <Loader2
-              size={17}
-              className="text-info/70 mx-auto mb-1.5 animate-spin"
-            />
-          ) : (
-            <Droplets size={17} className="text-info/70 mx-auto mb-1.5" />
-          )}
-          <p className="text-xs font-medium text-text-secondary">Faucet</p>
-        </Card>
-        <a href="/record" className="flex-1">
-          <Card hoverable className="text-center py-3.5">
-            <Footprints size={17} className="text-primary/60 mx-auto mb-1.5" />
-            <p className="text-xs font-medium text-text-secondary">Record</p>
-          </Card>
-        </a>
-        <Card hoverable className="flex-1 text-center py-3.5">
-          <Settings
-            size={17}
-            className="text-text-tertiary/70 mx-auto mb-1.5"
-          />
-          <p className="text-xs font-medium text-text-secondary">Settings</p>
-        </Card>
-      </div>
-
       <div className="mt-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5">
-        {(["stats", "feed", "achievements", "equipped"] as ProfileTab[]).map(
-          (tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer",
-                activeTab === tab
-                  ? "bg-surface text-text-primary shadow-card"
-                  : "text-text-tertiary",
-              )}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ),
-        )}
+        {[
+          { id: "stats", label: "Stats", icon: <BarChart3 size={14} /> },
+          { id: "achievements", label: "Badges", icon: <Award size={14} /> },
+          { id: "equipped", label: "Gear", icon: <Package size={14} /> },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as ProfileTab)}
+            className={cn(
+              "flex-1 py-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5",
+              activeTab === tab.id
+                ? "bg-surface text-text-primary shadow-card"
+                : "text-text-tertiary",
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="px-5 mt-4 pb-6">
@@ -543,119 +498,59 @@ export default function ProfilePage() {
               </div>
             </Card>
 
-            <div className="space-y-2.5 mt-4">
+            <div className="grid grid-cols-2 gap-3 mt-4">
               {[
                 {
-                  icon: <Footprints size={18} className="text-blue-500" />,
+                  icon: <Footprints size={18} className="text-primary" />,
                   label: "Total Distance",
                   value: formatDistance(displayUser.totalDistanceMeters),
-                  gradient: "from-blue-500/10 to-blue-600/5",
-                  border: "border-blue-500/20",
+                  gradient: "from-primary/10 to-primary-light/5",
+                  border: "border-primary/20",
                 },
                 {
-                  icon: <Trophy size={18} className="text-primary" />,
+                  icon: <Trophy size={18} className="text-blue-500" />,
                   label: "Verified Runs",
                   value: String(displayUser.verifiedRunCount),
                   gradient: "from-blue-500/10 to-blue-600/5",
                   border: "border-blue-500/20",
                 },
                 {
-                  icon: <Flame size={18} className="text-primary/70" />,
+                  icon: <Flame size={18} className="text-orange-500" />,
                   label: "Longest Streak",
                   value: `${displayUser.longestStreakDays} days`,
-                  gradient: "from-blue-500/10 to-blue-600/5",
-                  border: "border-blue-500/20",
+                  gradient: "from-orange-500/10 to-orange-400/5",
+                  border: "border-orange-500/20",
                 },
                 {
-                  icon: <Zap size={18} className="text-blue-400" />,
+                  icon: <Zap size={18} className="text-yellow-500" />,
                   label: "Total XP",
                   value: `${displayUser.exp} XP`,
-                  gradient: "from-blue-400/10 to-blue-500/5",
-                  border: "border-blue-400/20",
+                  gradient: "from-yellow-500/10 to-yellow-400/5",
+                  border: "border-yellow-500/20",
                 },
               ].map((stat) => (
                 <Card
                   key={stat.label}
                   className={cn(
-                    "flex items-center gap-3 !bg-gradient-to-br",
+                    "flex flex-col items-center justify-center text-center py-4 gap-2 !bg-gradient-to-br transition-transform active:scale-95 cursor-pointer",
                     stat.gradient,
                     `!${stat.border}`,
                   )}
                 >
-                  <div className="w-11 h-11 rounded-xl bg-white/60 flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-white/60 flex items-center justify-center shadow-sm">
                     {stat.icon}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-xs text-text-tertiary">{stat.label}</p>
-                    <p className="text-base font-bold text-text-primary">
+                  <div>
+                    <p className="text-base font-bold text-text-primary leading-tight">
                       {stat.value}
+                    </p>
+                    <p className="text-[10px] text-text-tertiary uppercase tracking-wide mt-0.5">
+                      {stat.label}
                     </p>
                   </div>
                 </Card>
               ))}
             </div>
-          </div>
-        )}
-
-        {activeTab === "feed" && (
-          <div className="space-y-4">
-            {MOCK_ACTIVITY_FEED.map((activity) => (
-              <div
-                key={activity.id}
-                className="rounded-2xl bg-surface border border-border-light/70 shadow-card overflow-hidden"
-              >
-                <div className="px-4 pt-3.5 pb-2 flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold",
-                      activity.user.avatarColor,
-                    )}
-                  >
-                    {activity.user.initial}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-text-primary">
-                      {activity.user.name}
-                    </p>
-                    <p className="text-[11px] text-text-tertiary">
-                      {timeAgo(activity.timestamp)}
-                      {activity.location && ` · ${activity.location}`}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mx-4 h-32 rounded-xl bg-gradient-to-br from-primary/5 to-blue-500/10 flex items-center justify-center">
-                  <MapPin size={24} className="text-primary/30" />
-                </div>
-
-                <div className="px-4 py-3 flex items-center divide-x divide-border-light/50">
-                  <div className="flex-1 text-center">
-                    <p className="text-sm font-bold text-text-primary">
-                      {formatDistance(activity.distanceMeters)}
-                    </p>
-                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
-                      Distance
-                    </p>
-                  </div>
-                  <div className="flex-1 text-center">
-                    <p className="text-sm font-bold text-text-primary">
-                      {formatDuration(activity.durationSeconds)}
-                    </p>
-                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
-                      Duration
-                    </p>
-                  </div>
-                  <div className="flex-1 text-center">
-                    <p className="text-sm font-bold text-text-primary">
-                      {formatPace(activity.avgPaceSeconds)}
-                    </p>
-                    <p className="text-[10px] text-text-tertiary uppercase tracking-wider">
-                      Pace
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         )}
 

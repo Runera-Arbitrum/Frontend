@@ -37,7 +37,7 @@ export default function Modal({ open, onClose, title, children, className }: Mod
       {/* Bottom sheet — gentle */}
       <div
         className={cn(
-          'relative w-full max-w-[430px] bg-surface rounded-t-[28px] sm:rounded-2xl',
+          'relative w-full max-w-[430px] bg-surface rounded-t-2xl sm:rounded-2xl',
           'p-6 pb-10 max-h-[85vh] overflow-y-auto',
           'animate-in slide-in-from-bottom duration-300',
           className,
