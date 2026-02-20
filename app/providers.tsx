@@ -15,7 +15,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         appearance: {
           theme: 'light',
           accentColor: '#0072F4',
-          logo: '/runera-biru.png',
+          logo: '/runera-biru.svg',
         },
         loginMethods: ['email', 'google', 'wallet'],
         embeddedWallets: {

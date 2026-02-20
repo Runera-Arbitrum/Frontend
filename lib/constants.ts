@@ -58,3 +58,6 @@ export const DEFAULT_MAP_ZOOM = 15;
 
 // Privy
 export const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
+
+// Event Manager
+export const EVENT_MANAGER_ADDRESS = '0xD4c7017a00f5b31A567a0C59437D229375745e2e' as const;

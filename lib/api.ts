@@ -241,4 +241,47 @@ export async function requestFaucet(
   });
 }
 
+export async function createEvent(payload: {
+  eventId: string;
+  name: string;
+  minTier: number;
+  minTotalDistanceMeters: number;
+  targetDistanceMeters: number;
+  expReward: number;
+  startTime: string;
+  endTime: string;
+}, token?: string): Promise<{
+  success: boolean;
+  event?: any;
+  message?: string;
+}> {
+  // TEMPORARY: Mock implementation until backend is ready
+  // TODO: Remove this mock when backend POST /events is implemented
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Using MOCK createEvent - backend endpoint not implemented yet');
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Mock success response
+    return {
+      success: true,
+      event: {
+        ...payload,
+        active: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      message: 'Event created (MOCK)'
+    };
+  }
+
+  // Real API call (will work when backend is ready)
+  return apiFetch('/events', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export { apiFetch };

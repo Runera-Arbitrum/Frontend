@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useAuth } from "@/hooks/useAuth";
 import { submitRun } from "@/lib/api";
@@ -44,6 +45,7 @@ interface ValidateStep {
 }
 
 export default function RecordPage() {
+  const router = useRouter();
   const { walletAddress } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [state, setState] = useState<RecordState>("idle");
@@ -216,30 +218,35 @@ export default function RecordPage() {
       setSubmitting(true);
       const result = await submitRun({
         walletAddress,
-        distanceMeters: effectiveDistance,
-        durationSeconds: elapsed,
+        distanceMeters: Math.round(effectiveDistance),
+        durationSeconds: Math.round(elapsed),
         startTime: runStartTime,
         endTime: new Date().toISOString(),
-        avgPaceSeconds: pace,
         deviceHash: "",
-        path:
-          geo.path.length > 0
-            ? geo.path
-            : [{ lat: -6.2, lng: 106.8, timestamp: Date.now() }],
       });
 
       if (result.success && result.status === "VERIFIED") {
         setXpEarned(result.xpEarned || 0);
-        toastSuccess(`Run verified! +${result.xpEarned || 0} XP earned`);
+        toastSuccess(`Run berhasil disimpan! +${result.xpEarned || 0} XP earned`);
+        handleReset();
+        setTimeout(() => {
+          router.push("/home");
+        }, 1500);
       } else if (result.status === "REJECTED") {
         toastError(
-          `Run rejected: ${result.message || result.reasonCode || "Unknown reason"}`,
+          `Run ditolak: ${result.message || result.reasonCode || "Unknown reason"}`,
         );
+        handleReset();
+      } else {
+        toastSuccess("Run berhasil disimpan dan sedang divalidasi");
+        handleReset();
+        setTimeout(() => {
+          router.push("/home");
+        }, 1500);
       }
-      handleReset();
     } catch (err) {
       toastError(
-        "Failed to submit run: " +
+        "Gagal menyimpan run: " +
           (err instanceof Error ? err.message : "Unknown error"),
       );
     } finally {
@@ -251,9 +258,8 @@ export default function RecordPage() {
     effectiveDistance,
     elapsed,
     runStartTime,
-    pace,
     handleReset,
-    geo.path,
+    router,
   ]);
 
   if (state === "idle") {

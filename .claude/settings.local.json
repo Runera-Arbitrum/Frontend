@@ -17,7 +17,8 @@
       "Bash(head:*)",
       "Bash(find:*)",
       "Bash(ren:*)",
-      "Bash(pnpm run build:*)"
+      "Bash(pnpm run build:*)",
+      "WebFetch(domain:lively-nature-production.up.railway.app)"
     ]
   }
 }

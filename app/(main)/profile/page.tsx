@@ -239,87 +239,100 @@ export default function ProfilePage() {
 
   if (!hasProfile) {
     return (
-      <div className="page-enter">
-        <div className="relative overflow-hidden">
+      <div className="page-enter min-h-screen bg-gradient-to-b from-primary-50/30 to-surface">
+        <div className="relative overflow-hidden mb-6">
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
-          <div className="relative px-5 pt-14 pb-8">
+          <div className="relative px-5 pt-12 pb-20">
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 rounded-full bg-white/90 flex items-center justify-center mb-4 ring-4 ring-white/20 shadow-lg">
                 <User size={36} className="text-primary" />
               </div>
               <p className="text-xl font-bold text-white">Welcome to Runera</p>
-              <p className="text-sm text-white/70 mt-1">
+              <p className="text-sm text-white/80 mt-1.5">
                 Set up your profile to start running
               </p>
             </div>
           </div>
         </div>
 
-        <div className="px-5 -mt-4 space-y-3">
-          <Card variant="white">
-            <div className="flex items-start gap-3">
+        <div className="px-5 pb-6 space-y-3">
+          <Card variant="white" className="shadow-lg">
+            <div className="flex items-start gap-3.5">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-300",
                   walletAddress
-                    ? "bg-success/10 text-success"
-                    : "bg-primary/10 text-primary animate-pulse",
+                    ? "bg-gradient-to-br from-success to-green-600 text-white shadow-gentle"
+                    : "bg-gradient-to-br from-primary/20 to-primary-light/10 text-primary ring-2 ring-primary/30 animate-pulse",
                 )}
               >
-                {walletAddress ? <Check size={16} /> : "1"}
+                {walletAddress ? <Check size={20} strokeWidth={3} /> : "1"}
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-text-primary">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text-primary mb-1">
                   Create Wallet
                 </p>
-                <p className="text-xs text-text-tertiary mt-0.5">
+                <p className="text-xs text-text-tertiary leading-relaxed">
                   {walletAddress
-                    ? `Wallet ready: ${truncateAddress(walletAddress)}`
+                    ? "Wallet created successfully"
                     : "Creating your wallet... please wait"}
                 </p>
+                {walletAddress && (
+                  <div className="mt-2 flex items-center gap-2 bg-surface-tertiary/60 rounded-lg px-3 py-2">
+                    <code className="text-xs font-mono text-text-secondary flex-1 truncate">
+                      {truncateAddress(walletAddress)}
+                    </code>
+                    <button
+                      onClick={copyAddress}
+                      className="text-xs text-primary font-semibold cursor-pointer flex items-center gap-1 shrink-0"
+                    >
+                      {copied ? (
+                        <>
+                          <Check size={12} /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} /> Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
-              {walletAddress && (
-                <button
-                  onClick={copyAddress}
-                  className="text-xs text-primary font-medium mt-0.5 cursor-pointer"
-                >
-                  {copied ? "Copied!" : "Copy"}
-                </button>
-              )}
             </div>
           </Card>
 
-          <Card variant="white">
-            <div className="flex items-start gap-3">
+          <Card variant="white" className="shadow-lg">
+            <div className="flex items-start gap-3.5">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-300",
                   !walletAddress
                     ? "bg-surface-tertiary text-text-tertiary"
-                    : "bg-info/10 text-info",
+                    : "bg-gradient-to-br from-info/20 to-blue-500/10 text-info ring-2 ring-info/30",
                 )}
               >
                 2
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-text-primary">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text-primary mb-1">
                   Get Testnet ETH
                 </p>
-                <p className="text-xs text-text-tertiary mt-0.5">
+                <p className="text-xs text-text-tertiary leading-relaxed mb-3">
                   Get free testnet tokens to create your profile
                 </p>
                 {walletAddress && (
                   <Button
                     variant="secondary"
-                    size="sm"
-                    className="mt-2.5"
+                    size="md"
+                    className="w-full rounded-xl shadow-sm"
                     onClick={handleFaucet}
                     disabled={faucetLoading || !walletAddress}
                     icon={
                       faucetLoading ? (
-                        <Loader2 size={14} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                       ) : (
-                        <Droplets size={14} />
+                        <Droplets size={16} />
                       )
                     }
                   >
@@ -330,37 +343,37 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <Card variant="white">
-            <div className="flex items-start gap-3">
+          <Card variant="white" className="shadow-lg">
+            <div className="flex items-start gap-3.5">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold",
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-300",
                   !walletReady
                     ? "bg-surface-tertiary text-text-tertiary"
-                    : "bg-primary/10 text-primary",
+                    : "bg-gradient-to-br from-primary/20 to-primary-light/10 text-primary ring-2 ring-primary/30",
                 )}
               >
                 3
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-text-primary">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-text-primary mb-1">
                   Create Your Profile
                 </p>
-                <p className="text-xs text-text-tertiary mt-0.5">
+                <p className="text-xs text-text-tertiary leading-relaxed mb-3">
                   Your runner identity to record runs and join events
                 </p>
                 {walletReady && (
                   <Button
                     variant="primary"
-                    size="sm"
-                    className="mt-2.5"
+                    size="md"
+                    className="w-full rounded-xl shadow-gentle"
                     onClick={handleMintProfile}
                     disabled={mintLoading}
                     icon={
                       mintLoading ? (
-                        <Loader2 size={14} className="animate-spin" />
+                        <Loader2 size={16} className="animate-spin" />
                       ) : (
-                        <Shield size={14} />
+                        <Shield size={16} />
                       )
                     }
                   >
@@ -371,23 +384,30 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <div className="bg-primary-50/60 rounded-2xl p-4 mt-2">
-            <p className="text-xs text-primary font-medium mb-1">
-              Why do I need a profile?
-            </p>
-            <p className="text-xs text-text-tertiary leading-relaxed">
-              Your profile is your runner identity. It tracks your running
-              stats, XP, and tier securely. Without it, you cannot record runs,
-              join events, or buy cosmetics.
-            </p>
+          <div className="bg-gradient-to-br from-primary-50 to-blue-50 rounded-2xl p-4 border border-primary/10 shadow-sm mt-1">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Shield size={16} className="text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-primary font-semibold mb-1.5">
+                  Why do I need a profile?
+                </p>
+                <p className="text-xs text-text-tertiary leading-relaxed">
+                  Your profile is your runner identity. It tracks your running
+                  stats, XP, and tier securely. Without it, you cannot record runs,
+                  join events, or buy cosmetics.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="px-5 mt-8 pb-8">
+        <div className="px-5 pb-8">
           <Button
             variant="ghost"
             size="md"
-            className="w-full text-error/70"
+            className="w-full text-error/70 rounded-xl"
             icon={<LogOut size={15} />}
             onClick={logout}
           >

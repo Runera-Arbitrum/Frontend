@@ -66,9 +66,7 @@ export interface RunSubmitPayload {
   durationSeconds: number;
   startTime: string;
   endTime: string;
-  avgPaceSeconds: number;
   deviceHash: string;
-  path?: GeoPosition[];
 }
 
 // --- Events ---
