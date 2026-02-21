@@ -24,45 +24,67 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-      <div className="w-full max-w-[430px] flex justify-center">
-        <nav
-          className="rounded-[41px] px-3 glass-ios-nav"
-          style={{
-            width: 280,
-            height: 52,
-          }}
-        >
-          <div className="flex items-center justify-around h-full">
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              const Icon = item.icon;
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        display: 'flex',
+        justifyContent: 'center',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+        pointerEvents: 'none',
+      }}
+    >
+      <nav
+        style={{
+          width: '280px',
+          height: '52px',
+          background: 'rgba(255, 255, 255, 0.81)',
+          border: '0.9px solid rgba(0, 0, 0, 0.11)',
+          boxShadow: '0px 1.2px 4.9px 0.6px rgba(0, 0, 0, 0.04)',
+          backdropFilter: 'blur(4.4px)',
+          WebkitBackdropFilter: 'blur(4.4px)',
+          borderRadius: '41px',
+          padding: '0 12px',
+          pointerEvents: 'auto',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '100%' }}>
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname.startsWith(item.href);
+            const Icon = item.icon;
 
-              return (
-                <Link
-                  key={item.route}
-                  href={item.href}
-                  className="flex items-center justify-center"
+            return (
+              <Link
+                key={item.route}
+                href={item.href}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <div
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: isActive ? '#0072F4' : 'transparent',
+                    transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  }}
                 >
-                  <div className={cn(
-                    'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ios-press',
-                    isActive ? 'bg-[#0072F4]' : '',
-                  )}>
-                    <Icon
-                      size={22}
-                      className={cn(
-                        'transition-all duration-200',
-                        isActive ? 'text-white' : 'text-[#8893A2]',
-                      )}
-                      strokeWidth={isActive ? 2.3 : 1.9}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      </div>
+                  <Icon
+                    size={22}
+                    color={isActive ? '#ffffff' : '#8893A2'}
+                    strokeWidth={isActive ? 2.3 : 1.9}
+                  />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
