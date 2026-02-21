@@ -15,6 +15,7 @@ import { XP_PER_LEVEL } from "@/lib/constants";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge, { TierBadge } from "@/components/ui/Badge";
+import AchievementBadge from "@/components/ui/AchievementBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
@@ -592,65 +593,16 @@ export default function ProfilePage() {
               />
             ) : (
               <div className="space-y-3">
-                {achievements.map((ach, idx) => {
-                  const tierLabels = [
-                    "",
-                    "Bronze",
-                    "Silver",
-                    "Gold",
-                    "Platinum",
-                    "Diamond",
-                  ];
-                  const tierColors = [
-                    "",
-                    "#CD7F32",
-                    "#C0C0C0",
-                    "#FFD700",
-                    "#E5E4E2",
-                    "#B9F2FF",
-                  ];
-                  const tierGradients = [
-                    "",
-                    "from-amber-600/15 to-amber-400/5",
-                    "from-gray-400/15 to-gray-300/5",
-                    "from-yellow-500/15 to-yellow-400/5",
-                    "from-slate-300/15 to-slate-200/5",
-                    "from-cyan-400/15 to-cyan-300/5",
-                  ];
-                  const t = ach.tier >= 1 && ach.tier <= 5 ? ach.tier : 1;
-                  const unlockDate = new Date(Number(ach.unlockedAt) * 1000);
-
-                  return (
-                    <div
-                      key={ach.eventIdHex}
-                      className={cn(
-                        "stagger-item rounded-2xl border p-4 shadow-card flex items-center gap-4",
-                        `bg-gradient-to-br ${tierGradients[t]} border-border-light/60`,
-                      )}
-                      style={{ animationDelay: `${idx * 80}ms` }}
-                    >
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-                        style={{ background: `${tierColors[t]}22` }}
-                      >
-                        <Award size={24} style={{ color: tierColors[t] }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-text-primary">
-                          Tier {t} — {tierLabels[t]}
-                        </p>
-                        <p className="text-[11px] text-text-tertiary mt-0.5">
-                          Unlocked{" "}
-                          {unlockDate.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                {achievements.map((ach, idx) => (
+                  <AchievementBadge
+                    key={ach.eventIdHex}
+                    tier={ach.tier}
+                    unlockedAt={ach.unlockedAt}
+                    eventIdHex={ach.eventIdHex}
+                    variant="full"
+                    animationDelay={idx * 80}
+                  />
+                ))}
               </div>
             )}
           </>

@@ -15,6 +15,7 @@ import {
 import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
 import { TierBadge, StatusBadge } from "@/components/ui/Badge";
+import AchievementBadge from "@/components/ui/AchievementBadge";
 import Modal from "@/components/ui/Modal";
 import Image from "next/image";
 import {
@@ -115,6 +116,9 @@ interface EventItem {
   startTime: string;
   endTime: string;
   active: boolean;
+  eligible?: boolean;
+  status?: string | null;
+  distanceCovered?: number;
   userProgress?: {
     distanceCovered: number;
     isEligible: boolean;
@@ -386,61 +390,16 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            {achievements.map((ach, idx) => {
-              const tierLabels = [
-                "",
-                "Bronze",
-                "Silver",
-                "Gold",
-                "Platinum",
-                "Diamond",
-              ];
-              const tierColors = [
-                "",
-                "#CD7F32",
-                "#C0C0C0",
-                "#FFD700",
-                "#E5E4E2",
-                "#B9F2FF",
-              ];
-              const tierGradients = [
-                "",
-                "from-amber-600/15 to-amber-400/5",
-                "from-gray-400/15 to-gray-300/5",
-                "from-yellow-500/15 to-yellow-400/5",
-                "from-slate-300/15 to-slate-200/5",
-                "from-cyan-400/15 to-cyan-300/5",
-              ];
-              const t = ach.tier >= 1 && ach.tier <= 5 ? ach.tier : 1;
-              const unlockDate = new Date(Number(ach.unlockedAt) * 1000);
-
-              return (
-                <div
-                  key={ach.eventIdHex}
-                  className={cn(
-                    "stagger-item flex-shrink-0 w-[140px] rounded-2xl border p-3.5 shadow-card",
-                    `bg-gradient-to-br ${tierGradients[t]} border-border-light/60`,
-                  )}
-                  style={{ animationDelay: `${idx * 80}ms` }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center mb-2.5 mx-auto"
-                    style={{ background: `${tierColors[t]}22` }}
-                  >
-                    <Award size={20} style={{ color: tierColors[t] }} />
-                  </div>
-                  <p className="text-[11px] font-semibold text-text-primary text-center truncate">
-                    Tier {t} — {tierLabels[t]}
-                  </p>
-                  <p className="text-[10px] text-text-tertiary text-center mt-0.5">
-                    {unlockDate.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              );
-            })}
+            {achievements.map((ach, idx) => (
+              <AchievementBadge
+                key={ach.eventIdHex}
+                tier={ach.tier}
+                unlockedAt={ach.unlockedAt}
+                eventIdHex={ach.eventIdHex}
+                variant="compact"
+                animationDelay={idx * 80}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -484,15 +443,10 @@ export default function HomePage() {
                   0,
                   Math.ceil((end.getTime() - now.getTime()) / 86400000),
                 );
-                const progress = evt.userProgress
-                  ? Math.min(
-                      100,
-                      Math.round(
-                        (evt.userProgress.distanceCovered /
-                          evt.targetDistanceMeters) *
-                          100,
-                      ),
-                    )
+                const isJoined = evt.status === "JOINED" || evt.status === "COMPLETED" || evt.userProgress?.hasJoined;
+                const covered = evt.distanceCovered ?? evt.userProgress?.distanceCovered ?? 0;
+                const progress = isJoined && evt.targetDistanceMeters > 0
+                  ? Math.min(100, Math.round((covered / evt.targetDistanceMeters) * 100))
                   : 0;
 
                 return (
@@ -519,7 +473,7 @@ export default function HomePage() {
                           </span>
                         </div>
                       </div>
-                      {evt.userProgress?.hasJoined ? (
+                      {isJoined ? (
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">
                           Joined
                         </span>
@@ -529,14 +483,14 @@ export default function HomePage() {
                         </span>
                       )}
                     </div>
-                    {evt.userProgress?.hasJoined && (
+                    {isJoined && (
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] text-text-tertiary">
                             {progress}%
                           </span>
                           <span className="text-[10px] text-text-tertiary">
-                            {formatDistance(evt.userProgress.distanceCovered)} /{" "}
+                            {formatDistance(covered)} /{" "}
                             {formatDistance(evt.targetDistanceMeters)}
                           </span>
                         </div>

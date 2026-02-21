@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { keccak256, toHex } from "viem";
 import { useAuth } from "@/hooks/useAuth";
-import { getEvents, joinEvent as apiJoinEvent, createEvent } from "@/lib/api";
+import { getEvents, joinEvent as apiJoinEvent, createEvent, claimAchievement } from "@/lib/api";
 import { formatDistance, formatDate, cn } from "@/lib/utils";
 import { TIER_NAMES, type RunEvent, type TierLevel } from "@/lib/types";
 import { EVENT_MANAGER_ADDRESS } from "@/lib/constants";
@@ -23,12 +24,14 @@ import {
   Loader2,
   Plus,
   Shield,
+  CheckCircle2,
 } from "lucide-react";
 
 type FilterTab = "all" | "joined" | "upcoming";
 
 export default function EventsPage() {
   const { walletAddress } = useAuth();
+  const { error: toastError } = useToast();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
   const [events, setEvents] = useState<RunEvent[]>([]);
@@ -41,22 +44,33 @@ export default function EventsPage() {
     try {
       setLoading(true);
       const res = await getEvents(walletAddress || undefined);
-      const mappedEvents: RunEvent[] = (res.events || []).map((e: any) => ({
-        eventId: e.eventId,
-        name: e.name,
-        minTier: e.minTier || 1,
-        minTotalDistanceMeters: e.minTotalDistanceMeters || 0,
-        targetDistanceMeters: e.targetDistanceMeters,
-        expReward: e.expReward,
-        startTime: e.startTime,
-        endTime: e.endTime,
-        active: e.active,
-        isEligible: e.userProgress?.isEligible ?? true,
-        participationStatus: e.userProgress?.hasJoined ? "JOINED" : null,
-      }));
+      const eventsList = res.events || (res as any).data || [];
+      const mappedEvents: RunEvent[] = (Array.isArray(eventsList) ? eventsList : []).map((e: any) => {
+        const progress = e.userProgress;
+        const directStatus = e.status as string | null;
+        let participationStatus: RunEvent["participationStatus"] = null;
+        if (progress?.hasClaimed || directStatus === "COMPLETED") participationStatus = "COMPLETED";
+        else if (progress?.hasJoined || directStatus === "JOINED") participationStatus = "JOINED";
+        return {
+          eventId: e.eventId,
+          name: e.name,
+          minTier: e.minTier || 1,
+          minTotalDistanceMeters: e.minTotalDistanceMeters || 0,
+          targetDistanceMeters: e.targetDistanceMeters,
+          expReward: e.expReward,
+          startTime: e.startTime,
+          endTime: e.endTime,
+          active: e.active,
+          isEligible: e.eligible ?? progress?.isEligible ?? true,
+          participationStatus,
+          distanceCovered: e.distanceCovered ?? progress?.distanceCovered ?? 0,
+          hasClaimed: e.hasClaimed ?? progress?.hasClaimed ?? false,
+        };
+      });
       setEvents(mappedEvents);
     } catch (err) {
-      console.error("Failed to fetch events:", err);
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toastError("Failed to load events: " + msg);
     } finally {
       setLoading(false);
     }
@@ -67,7 +81,7 @@ export default function EventsPage() {
   }, [walletAddress]);
 
   const filtered = events.filter((e) => {
-    if (activeTab === "joined") return e.participationStatus === "JOINED";
+    if (activeTab === "joined") return e.participationStatus === "JOINED" || e.participationStatus === "COMPLETED";
     if (activeTab === "upcoming") return new Date(e.startTime) > new Date();
     return true;
   });
@@ -161,7 +175,10 @@ export default function EventsPage() {
         {selectedEvent && (
           <EventDetail
             event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
+            onClose={() => {
+              setSelectedEvent(null);
+              fetchEvents();
+            }}
           />
         )}
       </Modal>
@@ -172,8 +189,9 @@ export default function EventsPage() {
         title="Create New Event"
       >
         <CreateEventForm
-          onClose={() => {
+          onClose={async () => {
             setShowCreateForm(false);
+            await new Promise((r) => setTimeout(r, 500));
             fetchEvents();
           }}
         />
@@ -191,6 +209,12 @@ function EventCard({
 }) {
   const isActive = event.active && new Date(event.endTime) > new Date();
   const isJoined = event.participationStatus === "JOINED";
+  const isCompleted = event.participationStatus === "COMPLETED";
+  const hasProgress = (isJoined || isCompleted) && event.targetDistanceMeters > 0;
+  const progressPercent = hasProgress
+    ? Math.min(100, Math.round(((event.distanceCovered || 0) / event.targetDistanceMeters) * 100))
+    : 0;
+  const isTargetReached = progressPercent >= 100;
 
   return (
     <Card hoverable onClick={onPress}>
@@ -200,7 +224,8 @@ function EventCard({
             <h3 className="text-sm font-semibold text-text-primary truncate">
               {event.name}
             </h3>
-            {isJoined && <Badge variant="blue">Joined</Badge>}
+            {isCompleted && <Badge variant="success">Completed</Badge>}
+            {isJoined && !isCompleted && <Badge variant="blue">Joined</Badge>}
           </div>
           <div className="flex items-center gap-3 text-xs text-text-tertiary flex-wrap">
             <span className="flex items-center gap-1">
@@ -219,19 +244,46 @@ function EventCard({
         />
       </div>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light/50 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <TierBadge tier={event.minTier} />
-          {isActive ? (
-            <Badge variant="success">Active</Badge>
-          ) : (
-            <Badge variant="default">Closed</Badge>
-          )}
+      {hasProgress && (
+        <div className="mt-3 pt-3 border-t border-border-light/50">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] font-medium text-text-secondary">
+              {isTargetReached ? "Target reached" : "Progress"}
+            </span>
+            <span className={cn(
+              "text-[11px] font-semibold",
+              isTargetReached ? "text-green-600" : "text-primary",
+            )}>
+              {formatDistance(event.distanceCovered || 0)} / {formatDistance(event.targetDistanceMeters)}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-surface-tertiary rounded-full overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                isTargetReached ? "bg-green-500" : "bg-primary",
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
         </div>
-        <span className="text-[10px] text-text-tertiary">
-          ends {formatDate(event.endTime)}
-        </span>
-      </div>
+      )}
+
+      {!hasProgress && (
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-light/50 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <TierBadge tier={event.minTier} />
+            {isActive ? (
+              <Badge variant="success">Active</Badge>
+            ) : (
+              <Badge variant="default">Closed</Badge>
+            )}
+          </div>
+          <span className="text-[10px] text-text-tertiary">
+            ends {formatDate(event.endTime)}
+          </span>
+        </div>
+      )}
     </Card>
   );
 }
@@ -246,8 +298,16 @@ function EventDetail({
   const { walletAddress } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const isJoined = event.participationStatus === "JOINED";
+  const isCompleted = event.participationStatus === "COMPLETED";
+  const isParticipating = isJoined || isCompleted;
   const isEligible = event.isEligible;
   const [joining, setJoining] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+
+  const progressPercent = isParticipating && event.targetDistanceMeters > 0
+    ? Math.min(100, Math.round(((event.distanceCovered || 0) / event.targetDistanceMeters) * 100))
+    : 0;
+  const isTargetReached = progressPercent >= 100;
 
   const handleJoin = async () => {
     if (!walletAddress) return;
@@ -263,6 +323,23 @@ function EventDetail({
       );
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!walletAddress) return;
+    try {
+      setClaiming(true);
+      await claimAchievement(walletAddress, event.eventId);
+      toastSuccess("Achievement claimed! Check your profile for the NFT.");
+      onClose();
+    } catch (err) {
+      toastError(
+        "Failed to claim: " +
+          (err instanceof Error ? err.message : "Unknown error"),
+      );
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -306,32 +383,107 @@ function EventDetail({
         )}
       </div>
 
-      {isJoined ? (
+      {isParticipating && (
+        <div className="bg-surface-tertiary/40 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-text-secondary">Your Progress</p>
+            <span className={cn(
+              "text-xs font-semibold",
+              isTargetReached ? "text-green-600" : "text-primary",
+            )}>
+              {progressPercent}%
+            </span>
+          </div>
+          <div className="w-full h-2.5 bg-surface-tertiary rounded-full overflow-hidden mb-2">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-500",
+                isTargetReached ? "bg-green-500" : "bg-primary",
+              )}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-text-tertiary">
+              {formatDistance(event.distanceCovered || 0)}
+            </span>
+            <span className="text-[11px] text-text-tertiary">
+              {formatDistance(event.targetDistanceMeters)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isCompleted ? (
+        <div className="bg-green-50 rounded-2xl p-5 text-center">
+          <CheckCircle2 size={28} className="text-green-500 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-green-700">Challenge Completed</p>
+          <p className="text-xs text-text-tertiary mt-1">
+            You earned {event.expReward} XP from this event
+          </p>
+        </div>
+      ) : isJoined && isTargetReached && !event.hasClaimed ? (
+        <div className="space-y-3">
+          <div className="bg-green-50 rounded-2xl p-4 text-center">
+            <Trophy size={24} className="text-green-500 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-green-700">Target Reached</p>
+            <p className="text-xs text-text-tertiary mt-1">
+              Claim your {event.expReward} XP reward
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full rounded-2xl"
+            onClick={handleClaim}
+            disabled={claiming}
+          >
+            {claiming ? (
+              <span className="flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin" /> Claiming...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Award size={16} /> Claim Reward
+              </span>
+            )}
+          </Button>
+        </div>
+      ) : isJoined ? (
         <div className="bg-primary-50/50 rounded-2xl p-5 text-center">
           <Trophy size={22} className="text-primary/70 mx-auto mb-2" />
           <p className="text-sm font-semibold text-primary">You&apos;re in!</p>
           <p className="text-xs text-text-tertiary mt-1">
-            Keep running to complete this challenge
+            Run {formatDistance(event.targetDistanceMeters - (event.distanceCovered || 0))} more to complete this challenge
           </p>
         </div>
       ) : (
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full rounded-2xl"
-          onClick={handleJoin}
-          disabled={!isEligible || joining}
-        >
-          {joining ? (
-            <span className="flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin" /> Joining...
-            </span>
-          ) : isEligible ? (
-            "Join Event"
-          ) : (
-            `Requires ${TIER_NAMES[event.minTier]} Tier`
+        <div className="space-y-2">
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full rounded-2xl"
+            onClick={handleJoin}
+            disabled={!isEligible || joining}
+          >
+            {joining ? (
+              <span className="flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin" /> Joining...
+              </span>
+            ) : isEligible ? (
+              "Join Event"
+            ) : event.minTotalDistanceMeters > 0 ? (
+              `Requires ${formatDistance(event.minTotalDistanceMeters)} total distance`
+            ) : (
+              "Not eligible yet"
+            )}
+          </Button>
+          {!isEligible && (
+            <p className="text-[11px] text-text-tertiary text-center">
+              Complete more runs to become eligible for this event
+            </p>
           )}
-        </Button>
+        </div>
       )}
     </div>
   );
@@ -396,8 +548,9 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
 
     try {
       setSubmitting(true);
+      const eventIdBytes32 = keccak256(toHex(formData.eventId));
       const result = await createEvent({
-        eventId: formData.eventId,
+        eventId: eventIdBytes32,
         name: formData.name,
         minTier: formData.minTier,
         minTotalDistanceMeters: formData.minTotalDistanceMeters,
@@ -405,6 +558,8 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
         expReward: formData.expReward,
         startTime: startDate.toISOString(),
         endTime: endDate.toISOString(),
+        active: true,
+        chainId: 421614,
       });
 
       if (result.success) {
@@ -414,11 +569,12 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
         toastError(result.message || "Failed to create event");
       }
     } catch (err) {
-      console.error("Create event error:", err);
-      toastError(
-        "Failed to create event: " +
-          (err instanceof Error ? err.message : "Unknown error"),
-      );
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      if (msg.toLowerCase().includes("already exists")) {
+        toastError("Event ID already exists. Please use a different Event ID.");
+      } else {
+        toastError("Failed to create event: " + msg);
+      }
     } finally {
       setSubmitting(false);
     }

@@ -131,11 +131,20 @@ export async function submitRun(
     deviceHash,
   };
 
-  return apiFetch('/run/submit', {
+  const res = await apiFetch<any>('/run/submit', {
     method: 'POST',
     body: JSON.stringify(enrichedPayload),
     token,
   });
+
+  return {
+    success: res.success ?? (res.status === 'VERIFIED'),
+    runId: res.runId,
+    status: res.status,
+    xpEarned: res.xpEarned ?? res.onchainSync?.stats?.xp ?? 0,
+    reasonCode: res.reasonCode,
+    message: res.message,
+  };
 }
 
 export async function getRuns(
@@ -149,7 +158,15 @@ export async function getRuns(
   limit: number;
   offset: number;
 }> {
-  return apiFetch(`/runs?walletAddress=${walletAddress}&limit=${limit}&offset=${offset}`);
+  const res = await apiFetch<any>(`/runs?walletAddress=${walletAddress}&limit=${limit}&offset=${offset}`);
+  const runs = res.runs || res.data || (Array.isArray(res) ? res : []);
+  return {
+    success: res.success ?? true,
+    runs: runs.map((r: any) => ({ ...r, id: r.id || r.runId })),
+    total: res.total ?? runs.length,
+    limit: res.limit ?? limit,
+    offset: res.offset ?? offset,
+  };
 }
 
 export async function syncProgress(
@@ -192,7 +209,9 @@ export async function getEvents(
     };
   }>;
 }> {
-  return apiFetch(`/events${walletAddress ? `?walletAddress=${walletAddress}` : ''}`);
+  const res = await apiFetch<any>(`/events${walletAddress ? `?walletAddress=${walletAddress}` : ''}`);
+  const events = res.events || res.data || (Array.isArray(res) ? res : []);
+  return { success: res.success ?? true, events };
 }
 
 export async function joinEvent(
@@ -251,6 +270,8 @@ export async function createEvent(payload: {
   expReward: number;
   startTime: string;
   endTime: string;
+  active: boolean;
+  chainId: number;
 }, token?: string): Promise<{
   success: boolean;
   event?: any;

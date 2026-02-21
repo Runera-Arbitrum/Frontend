@@ -80,9 +80,10 @@ export interface RunEvent {
   startTime: string;
   endTime: string;
   active: boolean;
-  // per-user fields
   isEligible?: boolean;
   participationStatus?: EventParticipationStatus | null;
+  distanceCovered?: number;
+  hasClaimed?: boolean;
 }
 
 export type EventParticipationStatus = 'JOINED' | 'COMPLETED' | 'REJECTED';
