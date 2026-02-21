@@ -25,8 +25,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     <AuthGuard>
       <div className={isRecording ? 'mobile-container' : 'mobile-container pb-24'}>
         {children}
-        {!isRecording && <BottomNav />}
       </div>
+      {!isRecording && <BottomNav />}
     </AuthGuard>
   );
 }

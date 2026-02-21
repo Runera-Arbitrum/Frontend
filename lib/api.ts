@@ -11,12 +11,13 @@ const API_PROXY_BASE = '/api/backend';
 
 async function apiFetch<T>(
   path: string,
-  options?: RequestInit & { token?: string },
+  options?: RequestInit & { token?: string; customHeaders?: Record<string, string> },
 ): Promise<T> {
-  const { token, ...fetchOptions } = options || {};
+  const { token, customHeaders, ...fetchOptions } = options || {};
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(customHeaders || {}),
   };
 
   const res = await fetch(`${API_PROXY_BASE}${path}`, {
@@ -255,31 +256,18 @@ export async function createEvent(payload: {
   event?: any;
   message?: string;
 }> {
-  // TEMPORARY: Mock implementation until backend is ready
-  // TODO: Remove this mock when backend POST /events is implemented
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('⚠️ Using MOCK createEvent - backend endpoint not implemented yet');
+  const adminSecret = process.env.NEXT_PUBLIC_ADMIN_SECRET;
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Mock success response
-    return {
-      success: true,
-      event: {
-        ...payload,
-        active: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      message: 'Event created (MOCK)'
-    };
+  if (!adminSecret || adminSecret === 'your-admin-secret-here') {
+    throw new Error('Admin secret not configured. Please set NEXT_PUBLIC_ADMIN_SECRET in .env.local');
   }
 
-  // Real API call (will work when backend is ready)
   return apiFetch('/events', {
     method: 'POST',
     body: JSON.stringify(payload),
+    customHeaders: {
+      'x-admin-secret': adminSecret,
+    },
     token,
   });
 }
