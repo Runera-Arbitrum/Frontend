@@ -44,6 +44,7 @@ import {
   type AchievementData,
 } from "@/lib/contracts/achievements";
 import type { Hex } from "viem";
+import { useMarketBanners } from "@/hooks/useMarketBanners";
 
 type ProfileTab = "stats" | "achievements" | "equipped";
 
@@ -54,6 +55,7 @@ interface AchievementWithEvent extends AchievementData {
 export default function ProfilePage() {
   const { walletAddress, activeWallet, walletReady, logout } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
+  const { equippedBanner } = useMarketBanners();
   const [activeTab, setActiveTab] = useState<ProfileTab>("stats");
   const [copied, setCopied] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -154,6 +156,11 @@ export default function ProfilePage() {
   };
 
   const currentStreak = calculateCurrentStreak();
+  const profileBannerStyle = equippedBanner
+    ? {
+        backgroundImage: `linear-gradient(135deg, ${equippedBanner.gradientFrom}, ${equippedBanner.gradientTo})`,
+      }
+    : undefined;
 
   const copyAddress = () => {
     if (walletAddress) {
@@ -422,7 +429,13 @@ export default function ProfilePage() {
   return (
     <div className="page-enter">
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-light to-blue-400" />
+        <div
+          className={cn(
+            "absolute inset-0",
+            !equippedBanner && "bg-gradient-to-br from-primary via-primary-light to-blue-400",
+          )}
+          style={profileBannerStyle}
+        />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent" />
 
         <div className="absolute top-0 inset-x-0 z-20 px-5 ios-header-safe flex items-center justify-end">
@@ -440,6 +453,11 @@ export default function ProfilePage() {
             <p className="text-xl font-bold text-white">
               Level {displayUser.level}
             </p>
+            {equippedBanner && (
+              <p className="mt-1.5 text-[11px] font-medium text-white/90 bg-white/20 px-2.5 py-1 rounded-full border border-white/20">
+                {equippedBanner.name} Banner
+              </p>
+            )}
 
             <button
               onClick={copyAddress}

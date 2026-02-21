@@ -1,32 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { RARITY_COLORS, CATEGORY_LABELS } from "@/lib/constants";
-import type { CosmeticItem } from "@/lib/types";
+import { RARITY_COLORS } from "@/lib/constants";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { RarityBadge } from "@/components/ui/Badge";
-import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
-import { ShoppingBag, Package, Sparkles, Wallet } from "lucide-react";
+import { ShoppingBag, Package, Sparkles, Wallet, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBalance } from "@/hooks/useBalance";
 import { useToast } from "@/components/ui/Toast";
 import { getProfile } from "@/lib/api";
+import { useMarketBanners, type MarketBanner } from "@/hooks/useMarketBanners";
 
 type MarketTab = "listings" | "collection";
 
 export default function MarketPage() {
   const [activeTab, setActiveTab] = useState<MarketTab>("listings");
-  const [selectedItem, setSelectedItem] = useState<CosmeticItem | null>(null);
 
   const { walletAddress } = useAuth();
   const { balance, isLoading } = useBalance(walletAddress);
+  const { success, info, warning } = useToast();
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const {
+    isReady,
+    listings,
+    ownedBanners,
+    equippedBannerId,
+    isOwned,
+    buyBanner,
+    equipBanner,
+  } = useMarketBanners();
 
-  // Check if user has a profile NFT
   useEffect(() => {
     if (!walletAddress) return;
     getProfile(walletAddress)
@@ -34,14 +41,33 @@ export default function MarketPage() {
       .catch(() => setHasProfile(false));
   }, [walletAddress]);
 
-  // SC integration pending — Marketplace + CosmeticNFT contract reads
-  const collection: CosmeticItem[] = [];
+  const handleBuyBanner = (banner: MarketBanner) => {
+    const purchased = buyBanner(banner.id);
+    if (!purchased) {
+      info("Banner already in your collection.");
+      return;
+    }
+    success(`${banner.name} added to My Collection.`);
+  };
+
+  const handleEquipBanner = (banner: MarketBanner) => {
+    if (hasProfile === false) {
+      warning("Set up your profile first to use banners.");
+      return;
+    }
+
+    const equipped = equipBanner(banner.id);
+    if (!equipped) {
+      info("This banner is already active.");
+      return;
+    }
+    success(`${banner.name} is now your profile banner.`);
+  };
 
   return (
     <div className="page-enter">
-      <Header title="Market" subtitle="Customize your runner" />
+      <Header title="Market" subtitle="Buy and equip profile banners" />
 
-      {/* Wallet Balance */}
       <div className="mx-5 mt-2 mb-3">
         <Card className="!bg-gradient-to-br from-primary/5 to-primary/10 !border-primary/20">
           <div className="flex items-center gap-3">
@@ -73,24 +99,24 @@ export default function MarketPage() {
               rel="noopener noreferrer"
               className="text-xs text-primary font-medium hover:underline"
             >
-              Get Testnet ETH →
+              Get Testnet ETH {"->"}
             </a>
           </div>
         </Card>
       </div>
 
-      {/* Banner */}
       <div className="mx-5 mb-4 bg-gradient-to-r from-primary/80 to-primary-light/70 rounded-2xl p-4 flex items-center gap-3">
         <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
           <Sparkles size={22} className="text-white/90" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-white/95">Cosmetic NFTs</p>
-          <p className="text-xs text-white/60">Customize your runner avatar</p>
+          <p className="text-sm font-semibold text-white/95">Banner Cards</p>
+          <p className="text-xs text-white/70">
+            Buy in Marketplace, then use in Profile
+          </p>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="px-5 flex gap-1 bg-surface-tertiary rounded-xl p-1 mx-5 mb-4">
         {(["listings", "collection"] as MarketTab[]).map((tab) => (
           <button
@@ -108,144 +134,159 @@ export default function MarketPage() {
         ))}
       </div>
 
-      {/* Content */}
       <div className="px-5 pb-6">
-        {activeTab === "listings" ? (
+        {!isReady ? (
           <EmptyState
             icon={<ShoppingBag size={36} />}
-            title="No listings yet"
-            description="Marketplace reads from smart contract — coming soon"
+            title="Loading market..."
+            description="Preparing your banner inventory"
           />
-        ) : collection.length === 0 ? (
+        ) : activeTab === "listings" ? (
+          <div className="space-y-3">
+            {listings.map((banner) => (
+              <MarketBannerCard
+                key={banner.id}
+                banner={banner}
+                owned={isOwned(banner.id)}
+                equipped={equippedBannerId === banner.id}
+                onBuy={() => handleBuyBanner(banner)}
+                onEquip={() => handleEquipBanner(banner)}
+              />
+            ))}
+          </div>
+        ) : ownedBanners.length === 0 ? (
           <EmptyState
             icon={<Package size={36} />}
-            title="No items yet"
-            description="Earn or buy cosmetics to customize your profile"
+            title="No banners yet"
+            description="Buy banner cards in Marketplace to unlock profile styles"
           />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {collection.map((item) => (
-              <CollectionCard
-                key={item.itemId}
-                item={item}
-                onPress={() => setSelectedItem(item)}
+          <div className="space-y-3">
+            {ownedBanners.map((banner) => (
+              <CollectionBannerCard
+                key={banner.id}
+                banner={banner}
+                equipped={equippedBannerId === banner.id}
+                onEquip={() => handleEquipBanner(banner)}
               />
             ))}
           </div>
         )}
       </div>
-
-      {/* Item Detail Modal */}
-      <Modal
-        open={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
-        title={selectedItem?.name}
-      >
-        {selectedItem && (
-          <ItemDetail
-            item={selectedItem}
-            onClose={() => setSelectedItem(null)}
-            hasProfile={hasProfile}
-          />
-        )}
-      </Modal>
     </div>
   );
 }
 
-function CollectionCard({
-  item,
-  onPress,
+function BannerPreview({
+  banner,
+  className,
 }: {
-  item: CosmeticItem;
-  onPress: () => void;
+  banner: MarketBanner;
+  className?: string;
 }) {
   return (
-    <Card hoverable onClick={onPress} className="text-center">
-      <div
-        className="w-full aspect-square rounded-xl mb-2.5 flex items-center justify-center"
-        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}08` }}
-      >
-        <Package
-          size={32}
-          style={{ color: RARITY_COLORS[item.rarity], opacity: 0.6 }}
-        />
+    <div
+      className={cn(
+        "w-full h-24 rounded-xl border border-white/20 shadow-inner flex items-end p-3",
+        className,
+      )}
+      style={{
+        backgroundImage: `linear-gradient(135deg, ${banner.gradientFrom}, ${banner.gradientTo})`,
+      }}
+    >
+      <p className="text-white text-xs font-semibold tracking-wide">{banner.name}</p>
+    </div>
+  );
+}
+
+function MarketBannerCard({
+  banner,
+  owned,
+  equipped,
+  onBuy,
+  onEquip,
+}: {
+  banner: MarketBanner;
+  owned: boolean;
+  equipped: boolean;
+  onBuy: () => void;
+  onEquip: () => void;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <BannerPreview banner={banner} />
+      <div className="pt-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text-primary truncate">
+              {banner.name}
+            </p>
+            <p className="text-xs text-text-tertiary mt-0.5">
+              {banner.description}
+            </p>
+          </div>
+          <RarityBadge rarity={banner.rarity} />
+        </div>
+
+        <div className="flex items-center justify-between mt-3">
+          <p
+            className="text-xs font-semibold"
+            style={{ color: RARITY_COLORS[banner.rarity] }}
+          >
+            {banner.priceEth} ARB ETH
+          </p>
+          {owned ? (
+            <Button
+              variant={equipped ? "secondary" : "outline"}
+              size="sm"
+              className="min-w-[116px]"
+              onClick={onEquip}
+            >
+              {equipped ? "Equipped" : "Use on Profile"}
+            </Button>
+          ) : (
+            <Button size="sm" className="min-w-[116px]" onClick={onBuy}>
+              Buy Banner
+            </Button>
+          )}
+        </div>
       </div>
-      <p className="text-xs font-medium text-text-primary truncate">
-        {item.name}
-      </p>
-      <RarityBadge rarity={item.rarity} className="mt-1.5" />
     </Card>
   );
 }
 
-function ItemDetail({
-  item,
-  onClose,
-  hasProfile,
+function CollectionBannerCard({
+  banner,
+  equipped,
+  onEquip,
 }: {
-  item: CosmeticItem;
-  onClose: () => void;
-  hasProfile: boolean | null;
+  banner: MarketBanner;
+  equipped: boolean;
+  onEquip: () => void;
 }) {
-  const { info, warning } = useToast();
-
-  const handleEquip = () => {
-    if (hasProfile === false) {
-      warning("Set up your profile first to equip items. Go to Profile to get started.");
-      onClose();
-      return;
-    }
-    info("Equip feature coming soon!");
-  };
-
-  const handleSell = () => {
-    if (hasProfile === false) {
-      warning("Set up your profile first to sell items. Go to Profile to get started.");
-      onClose();
-      return;
-    }
-    info("Sell feature coming soon!");
-    onClose();
-  };
-
   return (
-    <div className="space-y-5">
-      <div
-        className="w-full aspect-square max-h-48 rounded-2xl flex items-center justify-center"
-        style={{ backgroundColor: `${RARITY_COLORS[item.rarity]}08` }}
-      >
-        <Package
-          size={56}
-          style={{ color: RARITY_COLORS[item.rarity], opacity: 0.5 }}
-        />
+    <Card className="overflow-hidden">
+      <BannerPreview banner={banner} />
+      <div className="pt-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-text-primary truncate">
+            {banner.name}
+          </p>
+          <p className="text-xs text-text-tertiary mt-0.5">
+            Ready to use on your profile
+          </p>
+        </div>
+        {equipped ? (
+          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-success bg-success/10 px-2.5 py-1.5 rounded-full">
+            <CheckCircle2 size={14} />
+            Equipped
+          </div>
+        ) : (
+          <Button variant="secondary" size="sm" onClick={onEquip}>
+            Use on Profile
+          </Button>
+        )}
       </div>
-
-      <div className="text-center">
-        <RarityBadge rarity={item.rarity} />
-        <p className="text-xs text-text-tertiary mt-2">
-          {CATEGORY_LABELS[item.category]} · Max Supply: {item.maxSupply}
-        </p>
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-1 rounded-2xl min-h-[48px]"
-          onClick={handleEquip}
-        >
-          Equip
-        </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          className="flex-1 rounded-2xl min-h-[48px]"
-          onClick={handleSell}
-        >
-          Sell
-        </Button>
-      </div>
-    </div>
+    </Card>
   );
 }
