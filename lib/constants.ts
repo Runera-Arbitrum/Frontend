@@ -12,7 +12,7 @@ export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || 'https://sepolia-rollu
 // Contract addresses on Arbitrum Sepolia (Chain ID: 421614)
 export const CONTRACT_ADDRESSES = {
   accessControl: process.env.NEXT_PUBLIC_ACCESS_CONTROL || '0x3518B6A434F79625011321E348d14895946e3Be9',
-  eventRegistry: process.env.NEXT_PUBLIC_EVENT_REGISTRY || '0xc3a995a9756146b59Ec874bde2A326944E6F7B8E',
+  eventRegistry: process.env.NEXT_PUBLIC_EVENT_REGISTRY || '0x79651C3dd00661623bBA528c60A350C83C228Bc7',
   profileNFT: process.env.NEXT_PUBLIC_PROFILE_NFT || '0xAcb9b3e8dadA2d25Db5420634Fb0eD96161824A5',
   achievementNFT: process.env.NEXT_PUBLIC_ACHIEVEMENT_NFT || '0xb2935413BAB7ABc75BBf1A91082b0F32cbB6E74F',
   cosmeticNFT: process.env.NEXT_PUBLIC_COSMETIC_NFT || '0x94777E23b8E545eC57BD84DB58e0A800E9Db5aAD',

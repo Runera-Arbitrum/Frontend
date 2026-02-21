@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { keccak256, toHex } from "viem";
+import { keccak256, toHex, createPublicClient, createWalletClient, custom, http, type Address, type Hex } from "viem";
+import { arbitrumSepolia } from "viem/chains";
 import { useAuth } from "@/hooks/useAuth";
 import { getEvents, joinEvent as apiJoinEvent, createEvent, claimAchievement } from "@/lib/api";
+import { getEventReward, isEventManagerOnChain } from "@/lib/contracts/events";
 import { formatDistance, formatDate, cn } from "@/lib/utils";
-import { TIER_NAMES, type RunEvent, type TierLevel } from "@/lib/types";
-import { EVENT_MANAGER_ADDRESS } from "@/lib/constants";
+import { TIER_NAMES, BADGE_ICONS, type RunEvent, type TierLevel, type BadgeIconName } from "@/lib/types";
+import { CONTRACT_ADDRESSES, EVENT_MANAGER_ADDRESS, RPC_URL } from "@/lib/constants";
+import EventRegistryABI from "@/lib/contracts/abis/RuneraEventRegistry.json";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -25,9 +28,110 @@ import {
   Plus,
   Shield,
   CheckCircle2,
+  Gift,
+  Zap,
+  Palette,
+  Medal,
+  Flame,
+  Mountain,
+  Rocket,
+  Star,
+  Bolt,
+  Crown,
+  Heart,
+  Flag,
+  Compass,
+  Sunrise,
+  type LucideIcon,
 } from "lucide-react";
 
 type FilterTab = "all" | "joined" | "upcoming";
+
+const BADGE_ICON_MAP: Record<BadgeIconName, LucideIcon> = {
+  trophy: Trophy,
+  medal: Medal,
+  flame: Flame,
+  mountain: Mountain,
+  rocket: Rocket,
+  star: Star,
+  bolt: Bolt,
+  shield: Shield,
+  crown: Crown,
+  heart: Heart,
+  target: Target,
+  flag: Flag,
+  compass: Compass,
+  sunrise: Sunrise,
+};
+
+function getBadgeIcon(name?: string): LucideIcon {
+  if (name && name in BADGE_ICON_MAP) return BADGE_ICON_MAP[name as BadgeIconName];
+  return Award;
+}
+
+const TIER_BADGE_COLORS: Record<number, { bg: string; border: string; text: string; iconBg: string }> = {
+  1: { bg: "from-amber-600/10 to-amber-400/5", border: "border-amber-500/20", text: "text-amber-700", iconBg: "bg-amber-500/15" },
+  2: { bg: "from-gray-400/10 to-gray-300/5", border: "border-gray-400/20", text: "text-gray-600", iconBg: "bg-gray-400/15" },
+  3: { bg: "from-yellow-500/10 to-yellow-400/5", border: "border-yellow-500/20", text: "text-yellow-700", iconBg: "bg-yellow-500/15" },
+  4: { bg: "from-slate-300/10 to-purple-200/5", border: "border-purple-400/20", text: "text-purple-700", iconBg: "bg-purple-400/15" },
+  5: { bg: "from-cyan-400/10 to-blue-300/5", border: "border-cyan-400/20", text: "text-cyan-700", iconBg: "bg-cyan-400/15" },
+};
+
+function BadgePreview({
+  name,
+  icon,
+  tier,
+  xp,
+  size = "md",
+}: {
+  name: string;
+  icon?: BadgeIconName;
+  tier: number;
+  xp: number;
+  size?: "sm" | "md";
+}) {
+  const IconComponent = getBadgeIcon(icon);
+  const t = tier >= 1 && tier <= 5 ? tier : 1;
+  const colors = TIER_BADGE_COLORS[t];
+  const tierName = TIER_NAMES[t as TierLevel] || `Tier ${t}`;
+  const isSm = size === "sm";
+
+  return (
+    <div className={cn(
+      "rounded-2xl border bg-gradient-to-br flex items-center gap-3",
+      colors.bg,
+      colors.border,
+      isSm ? "p-2.5" : "p-3.5",
+    )}>
+      <div className={cn(
+        "rounded-xl flex items-center justify-center shrink-0",
+        colors.iconBg,
+        isSm ? "w-10 h-10" : "w-12 h-12",
+      )}>
+        <IconComponent size={isSm ? 18 : 22} className={colors.text} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={cn(
+          "font-semibold text-text-primary truncate",
+          isSm ? "text-xs" : "text-sm",
+        )}>
+          {name || "Untitled Badge"}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className={cn("text-[10px] font-medium", colors.text)}>
+            {tierName}
+          </span>
+          {xp > 0 && (
+            <>
+              <span className="text-text-tertiary/40">|</span>
+              <span className="text-[10px] text-text-tertiary">+{xp} XP</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function EventsPage() {
   const { walletAddress } = useAuth();
@@ -68,6 +172,18 @@ export default function EventsPage() {
         };
       });
       setEvents(mappedEvents);
+
+      const rewardResults = await Promise.allSettled(
+        mappedEvents.map((ev) => getEventReward(ev.eventId as Hex)),
+      );
+      const withRewards = mappedEvents.map((ev, i) => {
+        const result = rewardResults[i];
+        if (result.status === "fulfilled" && result.value?.hasReward) {
+          return { ...ev, reward: result.value };
+        }
+        return ev;
+      });
+      setEvents(withRewards);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toastError("Failed to load events: " + msg);
@@ -236,6 +352,15 @@ function EventCard({
               <Award size={12} className="text-text-tertiary/70 shrink-0" />
               +{event.expReward} XP
             </span>
+            {event.reward?.hasReward && (() => {
+              const BadgeIcon = getBadgeIcon(event.reward.badgeIcon);
+              return (
+                <span className="flex items-center gap-1 text-primary font-medium">
+                  <BadgeIcon size={12} className="shrink-0" />
+                  {event.reward.badgeName || "Badge"}
+                </span>
+              );
+            })()}
           </div>
         </div>
         <ChevronRight
@@ -383,6 +508,34 @@ function EventDetail({
         )}
       </div>
 
+      {event.reward?.hasReward && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-text-secondary px-1">Achievement Badge (Soulbound NFT)</p>
+          <BadgePreview
+            name={event.reward.badgeName || event.name}
+            icon={event.reward.badgeIcon}
+            tier={event.reward.achievementTier}
+            xp={event.reward.xpBonus}
+          />
+          <div className="flex gap-2 flex-wrap">
+            {event.reward.xpBonus > 0 && (
+              <div className="flex items-center gap-1.5 bg-surface-tertiary/60 rounded-xl px-3 py-2">
+                <Zap size={13} className="text-primary shrink-0" />
+                <span className="text-[11px] font-medium text-text-secondary">+{event.reward.xpBonus} XP Bonus</span>
+              </div>
+            )}
+            {event.reward.cosmeticItemIds.length > 0 && (
+              <div className="flex items-center gap-1.5 bg-surface-tertiary/60 rounded-xl px-3 py-2">
+                <Palette size={13} className="text-primary shrink-0" />
+                <span className="text-[11px] font-medium text-text-secondary">
+                  {event.reward.cosmeticItemIds.length} Cosmetic{event.reward.cosmeticItemIds.length > 1 ? "s" : ""}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {isParticipating && (
         <div className="bg-surface-tertiary/40 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-2">
@@ -421,6 +574,11 @@ function EventDetail({
           <p className="text-xs text-text-tertiary mt-1">
             You earned {event.expReward} XP from this event
           </p>
+          {event.reward?.hasReward && (
+            <p className="text-[11px] text-green-600 mt-1.5 font-medium">
+              Badge &quot;{event.reward.badgeName || event.name}&quot; claimed
+            </p>
+          )}
         </div>
       ) : isJoined && isTargetReached && !event.hasClaimed ? (
         <div className="space-y-3">
@@ -428,7 +586,10 @@ function EventDetail({
             <Trophy size={24} className="text-green-500 mx-auto mb-2" />
             <p className="text-sm font-semibold text-green-700">Target Reached</p>
             <p className="text-xs text-text-tertiary mt-1">
-              Claim your {event.expReward} XP reward
+              {event.reward?.hasReward
+                ? `Claim your badge and ${event.expReward} XP reward`
+                : `Claim your ${event.expReward} XP reward`
+              }
             </p>
           </div>
           <Button
@@ -510,7 +671,7 @@ function DetailStat({
 }
 
 function CreateEventForm({ onClose }: { onClose: () => void }) {
-  const { walletAddress } = useAuth();
+  const { walletAddress, activeWallet, walletReady } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const [submitting, setSubmitting] = useState(false);
 
@@ -523,6 +684,12 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
     expReward: 100,
     startTime: "",
     endTime: "",
+    enableReward: false,
+    rewardTier: 1,
+    rewardXpBonus: 0,
+    rewardCosmeticIds: "",
+    badgeName: "",
+    badgeIcon: "trophy" as BadgeIconName,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -549,7 +716,67 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
     try {
       setSubmitting(true);
       const eventIdBytes32 = keccak256(toHex(formData.eventId));
-      const result = await createEvent({
+      const cosmeticIds = formData.rewardCosmeticIds
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map(Number)
+        .filter((n) => !isNaN(n) && n > 0);
+
+      if (!walletReady || !activeWallet || !walletAddress) {
+        toastError("Wallet not ready for on-chain transaction");
+        return;
+      }
+
+      const hasManagerRole = await isEventManagerOnChain(walletAddress as Address);
+      if (!hasManagerRole) {
+        toastError("Connected wallet is not EVENT_MANAGER on-chain");
+        return;
+      }
+
+      await activeWallet.switchChain(arbitrumSepolia.id);
+      const provider = await activeWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        chain: arbitrumSepolia,
+        transport: custom(provider),
+        account: walletAddress as Address,
+      });
+
+      const reward = {
+        achievementTier: formData.enableReward ? formData.rewardTier : 0,
+        cosmeticItemIds: formData.enableReward
+          ? cosmeticIds.map((id) => BigInt(id))
+          : [],
+        xpBonus: formData.enableReward ? BigInt(formData.rewardXpBonus) : BigInt(0),
+        hasReward: formData.enableReward,
+      };
+
+      const txHash = await walletClient.writeContract({
+        address: CONTRACT_ADDRESSES.eventRegistry as Address,
+        abi: EventRegistryABI,
+        functionName: "createEvent",
+        args: [
+          eventIdBytes32,
+          formData.name,
+          BigInt(Math.floor(startDate.getTime() / 1000)),
+          BigInt(Math.floor(endDate.getTime() / 1000)),
+          BigInt(0),
+          reward,
+        ],
+      });
+
+      const publicClient = createPublicClient({
+        chain: arbitrumSepolia,
+        transport: http(RPC_URL),
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+      if (receipt.status === "reverted") {
+        toastError("On-chain transaction reverted. Event not created.");
+        return;
+      }
+
+      await createEvent({
         eventId: eventIdBytes32,
         name: formData.name,
         minTier: formData.minTier,
@@ -560,18 +787,32 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
         endTime: endDate.toISOString(),
         active: true,
         chainId: 421614,
+        ...(formData.enableReward
+          ? {
+              reward: {
+                achievementTier: formData.rewardTier,
+                cosmeticItemIds: cosmeticIds,
+                xpBonus: formData.rewardXpBonus,
+                hasReward: true,
+                badgeName: formData.badgeName || formData.name,
+                badgeIcon: formData.badgeIcon,
+              },
+            }
+          : {}),
       });
 
-      if (result.success) {
-        toastSuccess("Event created successfully!");
-        onClose();
-      } else {
-        toastError(result.message || "Failed to create event");
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      if (msg.toLowerCase().includes("already exists")) {
+      toastSuccess("Event created successfully!");
+      onClose();
+    } catch (err: any) {
+      const msg = err?.message || err?.shortMessage || "Unknown error";
+      if (err?.code === 4001 || msg.includes("User denied") || msg.includes("user rejected")) {
+        toastError("Transaction cancelled");
+      } else if (msg.toLowerCase().includes("already exists") || msg.includes("EventAlreadyExists")) {
         toastError("Event ID already exists. Please use a different Event ID.");
+      } else if (msg.includes("NotEventManager")) {
+        toastError("Your wallet does not have the Event Manager role on-chain");
+      } else if (msg.includes("InvalidTimeWindow")) {
+        toastError("Invalid time window. Check start and end dates.");
       } else {
         toastError("Failed to create event: " + msg);
       }
@@ -671,6 +912,131 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
         />
         <p className="text-[10px] text-text-tertiary mt-1">Total distance user must have run before</p>
       </div>
+
+      <div className="border-t border-border-light/50 pt-4 mt-1">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <div
+            className={cn(
+              "w-10 h-6 rounded-full transition-colors duration-200 relative cursor-pointer",
+              formData.enableReward ? "bg-primary" : "bg-surface-tertiary",
+            )}
+            onClick={() => setFormData({ ...formData, enableReward: !formData.enableReward })}
+          >
+            <div
+              className={cn(
+                "w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-sm transition-transform duration-200",
+                formData.enableReward ? "translate-x-[18px]" : "translate-x-0.5",
+              )}
+            />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-text-secondary">Enable Rewards</p>
+            <p className="text-[10px] text-text-tertiary">Configure achievement and cosmetic rewards</p>
+          </div>
+        </label>
+      </div>
+
+      {formData.enableReward && (
+        <div className="space-y-4 bg-primary-50/30 rounded-2xl p-4 border border-primary/10">
+          <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Achievement Badge (Soulbound NFT)</p>
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              Badge Name <span className="text-error">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.badgeName}
+              onChange={(e) => setFormData({ ...formData, badgeName: e.target.value })}
+              placeholder="e.g. Hero Run"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border-light text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-2">
+              Badge Icon
+            </label>
+            <div className="grid grid-cols-7 gap-2">
+              {BADGE_ICONS.map((iconName) => {
+                const Icon = BADGE_ICON_MAP[iconName];
+                const isSelected = formData.badgeIcon === iconName;
+                return (
+                  <button
+                    key={iconName}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, badgeIcon: iconName })}
+                    className={cn(
+                      "w-full aspect-square rounded-xl flex items-center justify-center transition-all duration-200 cursor-pointer",
+                      isSelected
+                        ? "bg-primary text-white shadow-md scale-105"
+                        : "bg-surface border border-border-light text-text-tertiary hover:border-primary/40 hover:text-primary",
+                    )}
+                  >
+                    <Icon size={18} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                Achievement Tier
+              </label>
+              <select
+                value={formData.rewardTier}
+                onChange={(e) => setFormData({ ...formData, rewardTier: Number(e.target.value) })}
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border-light text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              >
+                {[1, 2, 3, 4, 5].map((tier) => (
+                  <option key={tier} value={tier}>
+                    {TIER_NAMES[tier as TierLevel]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                XP Bonus
+              </label>
+              <input
+                type="number"
+                value={formData.rewardXpBonus}
+                onChange={(e) => setFormData({ ...formData, rewardXpBonus: Number(e.target.value) })}
+                min="0"
+                step="10"
+                className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border-light text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1.5">
+              Cosmetic Item IDs
+            </label>
+            <input
+              type="text"
+              value={formData.rewardCosmeticIds}
+              onChange={(e) => setFormData({ ...formData, rewardCosmeticIds: e.target.value })}
+              placeholder="e.g. 1, 2, 3"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border-light text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            />
+            <p className="text-[10px] text-text-tertiary mt-1">Comma-separated cosmetic NFT item IDs</p>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-text-secondary mb-2">Preview</p>
+            <BadgePreview
+              name={formData.badgeName || formData.name || "Badge Name"}
+              icon={formData.badgeIcon}
+              tier={formData.rewardTier}
+              xp={formData.rewardXpBonus}
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-medium text-text-secondary mb-1.5">

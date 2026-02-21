@@ -69,6 +69,25 @@ export interface RunSubmitPayload {
   deviceHash: string;
 }
 
+// --- Badge Icons (predefined set for achievement NFT badges) ---
+export const BADGE_ICONS = [
+  'trophy', 'medal', 'flame', 'mountain', 'rocket',
+  'star', 'bolt', 'shield', 'crown', 'heart',
+  'target', 'flag', 'compass', 'sunrise',
+] as const;
+
+export type BadgeIconName = typeof BADGE_ICONS[number];
+
+// --- Event Reward (from EventRegistry SC) ---
+export interface EventReward {
+  achievementTier: number;
+  cosmeticItemIds: number[];
+  xpBonus: number;
+  hasReward: boolean;
+  badgeName?: string;
+  badgeIcon?: BadgeIconName;
+}
+
 // --- Events ---
 export interface RunEvent {
   eventId: string;
@@ -84,6 +103,7 @@ export interface RunEvent {
   participationStatus?: EventParticipationStatus | null;
   distanceCovered?: number;
   hasClaimed?: boolean;
+  reward?: EventReward;
 }
 
 export type EventParticipationStatus = 'JOINED' | 'COMPLETED' | 'REJECTED';

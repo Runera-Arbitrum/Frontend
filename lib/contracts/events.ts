@@ -1,7 +1,9 @@
 import { createPublicClient, http, type Address, type Hex, keccak256, toBytes } from 'viem';
 import { arbitrumSepolia } from 'viem/chains';
 import { CONTRACT_ADDRESSES, RPC_URL } from '@/lib/constants';
+import type { EventReward } from '@/lib/types';
 import EventRegistryABI from './abis/RuneraEventRegistry.json';
+import AccessControlABI from './abis/RuneraAccessControl.json';
 
 /**
  * Event config structure matching smart contract (EventConfig)
@@ -37,7 +39,15 @@ export async function getEvent(eventId: Hex): Promise<EventConfig | null> {
       abi: EventRegistryABI,
       functionName: 'getEvent',
       args: [eventId],
-    }) as any;
+    }) as {
+      eventId: Hex;
+      name: string;
+      startTime: bigint;
+      endTime: bigint;
+      maxParticipants: bigint;
+      currentParticipants: bigint;
+      active: boolean;
+    };
 
     return {
       eventId: data.eventId,
@@ -155,6 +165,66 @@ export async function getAllEvents(): Promise<EventConfig[]> {
   } catch (error) {
     console.error('Failed to get all events:', error);
     return [];
+  }
+}
+
+/**
+ * Get event reward configuration from blockchain
+ */
+export async function getEventReward(eventId: Hex): Promise<EventReward | null> {
+  try {
+    const client = getPublicClient();
+
+    const exists = await client.readContract({
+      address: CONTRACT_ADDRESSES.eventRegistry as Address,
+      abi: EventRegistryABI,
+      functionName: 'eventExists',
+      args: [eventId],
+    }) as boolean;
+
+    if (!exists) {
+      return null;
+    }
+
+    const data = await client.readContract({
+      address: CONTRACT_ADDRESSES.eventRegistry as Address,
+      abi: EventRegistryABI,
+      functionName: 'getEventReward',
+      args: [eventId],
+    }) as {
+      achievementTier: number | bigint;
+      cosmeticItemIds: bigint[];
+      xpBonus: number | bigint;
+      hasReward: boolean;
+    };
+
+    return {
+      achievementTier: Number(data.achievementTier),
+      cosmeticItemIds: (data.cosmeticItemIds || []).map((id: bigint) => Number(id)),
+      xpBonus: Number(data.xpBonus),
+      hasReward: data.hasReward,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if an address has Event Manager role on-chain
+ */
+export async function isEventManagerOnChain(address: Address): Promise<boolean> {
+  try {
+    const client = getPublicClient();
+    const result = await client.readContract({
+      address: CONTRACT_ADDRESSES.accessControl as Address,
+      abi: AccessControlABI,
+      functionName: 'isEventManager',
+      args: [address],
+    }) as boolean;
+    return result;
+  } catch (error) {
+    console.error('Failed to check event manager role:', error);
+    return false;
   }
 }
 

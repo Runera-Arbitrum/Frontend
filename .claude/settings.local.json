@@ -18,7 +18,9 @@
       "Bash(find:*)",
       "Bash(ren:*)",
       "Bash(pnpm run build:*)",
-      "WebFetch(domain:lively-nature-production.up.railway.app)"
+      "WebFetch(domain:lively-nature-production.up.railway.app)",
+      "Bash(cmd /c \"where gh\")",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

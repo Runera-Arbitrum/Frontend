@@ -272,6 +272,14 @@ export async function createEvent(payload: {
   endTime: string;
   active: boolean;
   chainId: number;
+  reward?: {
+    achievementTier: number;
+    cosmeticItemIds: number[];
+    xpBonus: number;
+    hasReward: boolean;
+    badgeName?: string;
+    badgeIcon?: string;
+  };
 }, token?: string): Promise<{
   success: boolean;
   event?: any;
