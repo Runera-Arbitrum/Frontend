@@ -153,63 +153,7 @@ export default function HomePage() {
           setUser(profileRes.value);
         }
         if (runsRes.status === "fulfilled") {
-          let fetchedRuns = runsRes.value.runs || [];
-
-          if (fetchedRuns.length === 0) {
-            const mockVerifiedRuns: Run[] = [
-              {
-                id: "mock-1",
-                userId: walletAddress,
-                status: "VERIFIED",
-                distanceMeters: 5200,
-                durationSeconds: 1560,
-                startTime: new Date().toISOString(),
-                endTime: new Date(Date.now() + 1560000).toISOString(),
-                avgPaceSeconds: 300,
-                deviceHash: "mock-device",
-                submittedAt: new Date().toISOString(),
-                verifiedAt: new Date().toISOString(),
-                rejectedAt: null,
-                reasonCode: null,
-                onchainTxHash: null,
-              },
-              {
-                id: "mock-2",
-                userId: walletAddress,
-                status: "VERIFIED",
-                distanceMeters: 3800,
-                durationSeconds: 1140,
-                startTime: new Date(Date.now() - 86400000).toISOString(),
-                endTime: new Date(Date.now() - 86400000 + 1140000).toISOString(),
-                avgPaceSeconds: 300,
-                deviceHash: "mock-device",
-                submittedAt: new Date(Date.now() - 86400000).toISOString(),
-                verifiedAt: new Date(Date.now() - 86400000).toISOString(),
-                rejectedAt: null,
-                reasonCode: null,
-                onchainTxHash: null,
-              },
-              {
-                id: "mock-3",
-                userId: walletAddress,
-                status: "VERIFIED",
-                distanceMeters: 4500,
-                durationSeconds: 1350,
-                startTime: new Date(Date.now() - 172800000).toISOString(),
-                endTime: new Date(Date.now() - 172800000 + 1350000).toISOString(),
-                avgPaceSeconds: 300,
-                deviceHash: "mock-device",
-                submittedAt: new Date(Date.now() - 172800000).toISOString(),
-                verifiedAt: new Date(Date.now() - 172800000).toISOString(),
-                rejectedAt: null,
-                reasonCode: null,
-                onchainTxHash: null,
-              },
-            ];
-            fetchedRuns = mockVerifiedRuns;
-          }
-
-          setRuns(fetchedRuns);
+          setRuns(runsRes.value.runs || []);
         }
         if (eventsRes.status === "fulfilled") {
           setEvents(eventsRes.value.events || []);

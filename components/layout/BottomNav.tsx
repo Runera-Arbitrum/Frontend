@@ -26,15 +26,12 @@ export default function BottomNav() {
   return (
     <div
       style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
+        flexShrink: 0,
         display: 'flex',
         justifyContent: 'center',
+        paddingTop: '8px',
         paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-        pointerEvents: 'none',
+        background: '#ffffff',
       }}
     >
       <nav
@@ -48,7 +45,6 @@ export default function BottomNav() {
           WebkitBackdropFilter: 'blur(4.4px)',
           borderRadius: '41px',
           padding: '0 12px',
-          pointerEvents: 'auto',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '100%' }}>

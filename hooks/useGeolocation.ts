@@ -51,7 +51,6 @@ export function useGeolocation(): UseGeolocationReturn {
 
     setError(null);
     setIsTracking(true);
-    setPath([]);
 
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
