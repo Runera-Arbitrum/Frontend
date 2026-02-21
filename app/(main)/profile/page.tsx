@@ -14,7 +14,7 @@ import { TIER_NAMES, type TierLevel } from "@/lib/types";
 import { XP_PER_LEVEL } from "@/lib/constants";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Badge, { TierBadge } from "@/components/ui/Badge";
+import { TierBadge } from "@/components/ui/Badge";
 import AchievementBadge from "@/components/ui/AchievementBadge";
 import EmptyState from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
@@ -32,8 +32,6 @@ import {
   Droplets,
   Package,
   Shield,
-  Calendar,
-  Target,
   Zap,
   Loader2,
   BarChart3,
@@ -207,7 +205,7 @@ export default function ProfilePage() {
         account: walletAddress as Address,
       });
 
-      const txHash = await walletClient.writeContract({
+      await walletClient.writeContract({
         address: CONTRACT_ADDRESSES.profileNFT as Address,
         abi: ProfileNFTABI,
         functionName: "register",
