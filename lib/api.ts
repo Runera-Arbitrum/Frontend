@@ -237,6 +237,9 @@ export async function claimAchievement(
     eventId: string;
     tokenId: number;
     nonce: number;
+    tier: number;
+    metadataHash: string;
+    deadline: number;
   };
 }> {
   return apiFetch('/events/genesis/claim', {

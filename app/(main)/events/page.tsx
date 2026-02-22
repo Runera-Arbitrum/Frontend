@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { keccak256, toHex, createPublicClient, createWalletClient, custom, http, type Address, type Hex } from "viem";
+import { keccak256, toHex, createPublicClient, createWalletClient, custom, http, type Address, type Hex, type Hash } from "viem";
 import { arbitrumSepolia } from "viem/chains";
 import { useAuth } from "@/hooks/useAuth";
 import { getEvents, joinEvent as apiJoinEvent, createEvent, claimAchievement } from "@/lib/api";
@@ -10,6 +10,7 @@ import { formatDistance, formatDate, cn } from "@/lib/utils";
 import { TIER_NAMES, BADGE_ICONS, type RunEvent, type TierLevel, type BadgeIconName } from "@/lib/types";
 import { CONTRACT_ADDRESSES, EVENT_MANAGER_ADDRESS, RPC_URL } from "@/lib/constants";
 import EventRegistryABI from "@/lib/contracts/abis/RuneraEventRegistry.json";
+import AchievementNFTABI from "@/lib/contracts/abis/RuneraAchievementNFT.json";
 import Header from "@/components/layout/Header";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -28,7 +29,6 @@ import {
   Plus,
   Shield,
   CheckCircle2,
-  Gift,
   Zap,
   Palette,
   Medal,
@@ -420,7 +420,7 @@ function EventDetail({
   event: RunEvent;
   onClose: () => void;
 }) {
-  const { walletAddress } = useAuth();
+  const { walletAddress, activeWallet, walletReady } = useAuth();
   const { success: toastSuccess, error: toastError } = useToast();
   const isJoined = event.participationStatus === "JOINED";
   const isCompleted = event.participationStatus === "COMPLETED";
@@ -428,6 +428,26 @@ function EventDetail({
   const isEligible = event.isEligible;
   const [joining, setJoining] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<string>("");
+  const [alreadyClaimed, setAlreadyClaimed] = useState(event.hasClaimed ?? false);
+
+  useEffect(() => {
+    if (!walletAddress || !event.eventId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const client = createPublicClient({ chain: arbitrumSepolia, transport: http(RPC_URL) });
+        const has = await client.readContract({
+          address: CONTRACT_ADDRESSES.achievementNFT as Address,
+          abi: AchievementNFTABI,
+          functionName: "hasAchievement",
+          args: [walletAddress as Address, event.eventId as Hex],
+        }) as boolean;
+        if (!cancelled) setAlreadyClaimed(has);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [walletAddress, event.eventId]);
 
   const progressPercent = isParticipating && event.targetDistanceMeters > 0
     ? Math.min(100, Math.round(((event.distanceCovered || 0) / event.targetDistanceMeters) * 100))
@@ -453,18 +473,81 @@ function EventDetail({
 
   const handleClaim = async () => {
     if (!walletAddress) return;
+    if (!walletReady || !activeWallet) {
+      toastError("Wallet not ready for transaction");
+      return;
+    }
     try {
       setClaiming(true);
-      await claimAchievement(walletAddress, event.eventId);
-      toastSuccess("Achievement claimed! Check your profile for the NFT.");
+
+      setClaimStatus("Requesting claim signature...");
+      const result = await claimAchievement(walletAddress, event.eventId);
+      const { signature, achievementData } = result;
+
+      if (!signature || !achievementData) {
+        toastError("Backend did not return valid claim data");
+        return;
+      }
+
+      const tier = achievementData.tier ?? event.reward?.achievementTier ?? 1;
+      const metadataHash = achievementData.metadataHash || ("0x" + "0".repeat(64));
+      const deadline = achievementData.deadline || Math.floor(Date.now() / 1000) + 3600;
+
+      setClaimStatus("Confirm transaction in your wallet...");
+      await activeWallet.switchChain(arbitrumSepolia.id);
+      const provider = await activeWallet.getEthereumProvider();
+      const walletClient = createWalletClient({
+        chain: arbitrumSepolia,
+        transport: custom(provider),
+        account: walletAddress as Address,
+      });
+
+      const txHash = await walletClient.writeContract({
+        address: CONTRACT_ADDRESSES.achievementNFT as Address,
+        abi: AchievementNFTABI,
+        functionName: "claim",
+        args: [
+          walletAddress as Address,
+          achievementData.eventId as Hex,
+          tier,
+          metadataHash as Hex,
+          BigInt(deadline),
+          signature as Hex,
+        ],
+      });
+
+      setClaimStatus("Waiting for confirmation...");
+      const publicClient = createPublicClient({
+        chain: arbitrumSepolia,
+        transport: http(RPC_URL),
+      });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as Hash });
+
+      if (receipt.status === "reverted") {
+        toastError("Transaction reverted. Achievement not claimed.");
+        return;
+      }
+
+      setAlreadyClaimed(true);
+      toastSuccess("Achievement badge claimed! Check your profile for the NFT.");
       onClose();
-    } catch (err) {
-      toastError(
-        "Failed to claim: " +
-          (err instanceof Error ? err.message : "Unknown error"),
-      );
+    } catch (err: any) {
+      const msg = err?.message || err?.shortMessage || "Unknown error";
+      if (err?.code === 4001 || msg.includes("User denied") || msg.includes("user rejected")) {
+        toastError("Transaction cancelled");
+      } else if (msg.includes("AlreadyHasAchievement")) {
+        toastError("You have already claimed this achievement badge");
+        setAlreadyClaimed(true);
+      } else if (msg.includes("SignatureExpired")) {
+        toastError("Claim signature expired. Please try again.");
+      } else if (msg.includes("InvalidSigner")) {
+        toastError("Invalid claim signature. Please try again later.");
+      } else {
+        toastError("Failed to claim: " + msg);
+      }
     } finally {
       setClaiming(false);
+      setClaimStatus("");
     }
   };
 
@@ -567,7 +650,7 @@ function EventDetail({
         </div>
       )}
 
-      {isCompleted ? (
+      {alreadyClaimed ? (
         <div className="bg-green-50 rounded-2xl p-5 text-center">
           <CheckCircle2 size={28} className="text-green-500 mx-auto mb-2" />
           <p className="text-sm font-semibold text-green-700">Challenge Completed</p>
@@ -580,7 +663,7 @@ function EventDetail({
             </p>
           )}
         </div>
-      ) : isJoined && isTargetReached && !event.hasClaimed ? (
+      ) : isParticipating && isTargetReached ? (
         <div className="space-y-3">
           <div className="bg-green-50 rounded-2xl p-4 text-center">
             <Trophy size={24} className="text-green-500 mx-auto mb-2" />
@@ -601,7 +684,8 @@ function EventDetail({
           >
             {claiming ? (
               <span className="flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" /> Claiming...
+                <Loader2 size={16} className="animate-spin" />
+                {claimStatus || "Claiming..."}
               </span>
             ) : (
               <span className="flex items-center gap-2">
@@ -609,6 +693,11 @@ function EventDetail({
               </span>
             )}
           </Button>
+          {event.reward?.hasReward && (
+            <p className="text-[10px] text-text-tertiary text-center">
+              This will mint a soulbound NFT badge to your wallet
+            </p>
+          )}
         </div>
       ) : isJoined ? (
         <div className="bg-primary-50/50 rounded-2xl p-5 text-center">
