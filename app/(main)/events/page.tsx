@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { keccak256, toHex, createPublicClient, createWalletClient, custom, http, type Address, type Hex, type Hash } from "viem";
 import { arbitrumSepolia } from "viem/chains";
 import { useAuth } from "@/hooks/useAuth";
-import { getEvents, joinEvent as apiJoinEvent, createEvent, claimAchievement } from "@/lib/api";
+import { getEvents, joinEvent as apiJoinEvent, createEvent, claimAchievement, confirmAchievementClaim } from "@/lib/api";
 import { getEventReward, isEventManagerOnChain } from "@/lib/contracts/events";
 import { formatDistance, formatDate, cn } from "@/lib/utils";
 import { TIER_NAMES, BADGE_ICONS, type RunEvent, type TierLevel, type BadgeIconName } from "@/lib/types";
@@ -480,8 +480,12 @@ function EventDetail({
     try {
       setClaiming(true);
 
+      const tier = event.reward?.achievementTier ?? 1;
+      const badgeMeta = `${event.eventId}:${event.reward?.badgeName || event.name}:${tier}`;
+      const metadataHash = keccak256(toHex(badgeMeta));
+
       setClaimStatus("Requesting claim signature...");
-      const result = await claimAchievement(walletAddress, event.eventId);
+      const result = await claimAchievement(event.eventId, walletAddress, tier, metadataHash);
       const { signature, achievementData } = result;
 
       if (!signature || !achievementData) {
@@ -489,8 +493,8 @@ function EventDetail({
         return;
       }
 
-      const tier = achievementData.tier ?? event.reward?.achievementTier ?? 1;
-      const metadataHash = achievementData.metadataHash || ("0x" + "0".repeat(64));
+      const claimTier = achievementData.tier ?? tier;
+      const claimMetadataHash = achievementData.metadataHash || metadataHash;
       const deadline = achievementData.deadline || Math.floor(Date.now() / 1000) + 3600;
 
       setClaimStatus("Confirm transaction in your wallet...");
@@ -502,6 +506,14 @@ function EventDetail({
         account: walletAddress as Address,
       });
 
+      const publicClient = createPublicClient({
+        chain: arbitrumSepolia,
+        transport: http(RPC_URL),
+      });
+
+      const gasPrice = await publicClient.getGasPrice();
+      const maxFeePerGas = gasPrice * 150n / 100n;
+
       const txHash = await walletClient.writeContract({
         address: CONTRACT_ADDRESSES.achievementNFT as Address,
         abi: AchievementNFTABI,
@@ -509,24 +521,30 @@ function EventDetail({
         args: [
           walletAddress as Address,
           achievementData.eventId as Hex,
-          tier,
-          metadataHash as Hex,
+          claimTier,
+          claimMetadataHash as Hex,
           BigInt(deadline),
           signature as Hex,
         ],
+        maxFeePerGas,
       });
 
       setClaimStatus("Waiting for confirmation...");
-      const publicClient = createPublicClient({
-        chain: arbitrumSepolia,
-        transport: http(RPC_URL),
-      });
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash as Hash });
 
       if (receipt.status === "reverted") {
         toastError("Transaction reverted. Achievement not claimed.");
         return;
       }
+
+      try {
+        await confirmAchievementClaim(
+          walletAddress,
+          event.eventId,
+          txHash,
+          achievementData.tokenId,
+        );
+      } catch {}
 
       setAlreadyClaimed(true);
       toastSuccess("Achievement badge claimed! Check your profile for the NFT.");
@@ -535,9 +553,13 @@ function EventDetail({
       const msg = err?.message || err?.shortMessage || "Unknown error";
       if (err?.code === 4001 || msg.includes("User denied") || msg.includes("user rejected")) {
         toastError("Transaction cancelled");
-      } else if (msg.includes("AlreadyHasAchievement")) {
+      } else if (msg.includes("AlreadyHasAchievement") || msg.includes("ERR_ALREADY_CLAIMED")) {
         toastError("You have already claimed this achievement badge");
         setAlreadyClaimed(true);
+      } else if (msg.includes("ERR_NOT_JOINED")) {
+        toastError("You haven't joined this event yet");
+      } else if (msg.includes("ERR_TARGET_NOT_REACHED")) {
+        toastError("You haven't reached the target distance yet");
       } else if (msg.includes("SignatureExpired")) {
         toastError("Claim signature expired. Please try again.");
       } else if (msg.includes("InvalidSigner")) {
@@ -831,6 +853,14 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
         account: walletAddress as Address,
       });
 
+      const publicClient = createPublicClient({
+        chain: arbitrumSepolia,
+        transport: http(RPC_URL),
+      });
+
+      const gasPrice = await publicClient.getGasPrice();
+      const maxFeePerGas = gasPrice * 150n / 100n;
+
       const reward = {
         achievementTier: formData.enableReward ? formData.rewardTier : 0,
         cosmeticItemIds: formData.enableReward
@@ -852,11 +882,7 @@ function CreateEventForm({ onClose }: { onClose: () => void }) {
           BigInt(0),
           reward,
         ],
-      });
-
-      const publicClient = createPublicClient({
-        chain: arbitrumSepolia,
-        transport: http(RPC_URL),
+        maxFeePerGas,
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
 

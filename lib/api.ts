@@ -227,8 +227,10 @@ export async function joinEvent(
 }
 
 export async function claimAchievement(
-  walletAddress: string,
   eventId: string,
+  userAddress: string,
+  tier: number,
+  metadataHash: string,
   token?: string
 ): Promise<{
   success: boolean;
@@ -241,11 +243,24 @@ export async function claimAchievement(
     metadataHash: string;
     deadline: number;
   };
+  expRewarded?: number;
 }> {
-  return apiFetch('/events/genesis/claim', {
+  return apiFetch(`/events/${eventId}/claim`, {
     method: 'POST',
-    body: JSON.stringify({ walletAddress, eventId }),
+    body: JSON.stringify({ userAddress, tier, metadataHash }),
     token,
+  });
+}
+
+export async function confirmAchievementClaim(
+  userAddress: string,
+  eventId: string,
+  txHash: string,
+  tokenId?: number,
+): Promise<{ success: boolean }> {
+  return apiFetch('/achievements/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ userAddress, eventId, txHash, tokenId }),
   });
 }
 
